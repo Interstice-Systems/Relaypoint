@@ -11,7 +11,7 @@ async function main(): Promise<void> {
   console.log(`Readiness: ${record.readiness}`);
   console.log(`Run output: ${runDir}`);
   console.log(`Latest output: ${path.join(record.repo.root, ".relaypoint", "latest")}`);
-  console.log("Files: HANDOFF.md, QA_REPORT.md, AGENT_HANDOFF.md, RUN_RECORD.json");
+  console.log("Files: HANDOFF.md, QA_REPORT.md, AGENT_HANDOFF.md, QUALITY_REVIEW.md, RUN_RECORD.json");
 }
 
 main().catch((error: unknown) => {

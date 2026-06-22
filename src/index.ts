@@ -3,9 +3,10 @@ import { inspectGit } from "./git.js";
 import { detectProject } from "./projectDetect.js";
 import { runRequestedValidations } from "./validation.js";
 import { createRunRecord } from "./runRecord.js";
-import { renderAgentHandoff, renderHandoff, renderQaReport } from "./renderMarkdown.js";
+import { renderAgentHandoff, renderHandoff, renderQaReport, renderQualityReview } from "./renderMarkdown.js";
 import { safeTimestamp, writeBundle } from "./fsUtils.js";
 import type { RunRecord } from "./types.js";
+import { reviewChangedFiles } from "./qualityReview.js";
 
 export async function createHandoff(options: { cwd?: string; run?: string[]; now?: Date } = {}): Promise<{ record: RunRecord; runDir: string }> {
   const cwd = path.resolve(options.cwd ?? process.cwd());
@@ -14,12 +15,14 @@ export async function createHandoff(options: { cwd?: string; run?: string[]; now
   const project = await detectProject(git.root);
   const requested = options.run ?? [];
   const results = await runRequestedValidations(git.root, project, requested);
+  const qualityReview = await reviewChangedFiles(git.root, git.changedFiles);
   const now = options.now ?? new Date();
   const runId = safeTimestamp(now);
-  const record = createRunRecord({ runId, createdAt: now.toISOString(), git, project, requested, results });
+  const record = createRunRecord({ runId, createdAt: now.toISOString(), git, project, requested, results, qualityReview });
   const files = {
     "HANDOFF.md": renderHandoff(record), "QA_REPORT.md": renderQaReport(record),
-    "AGENT_HANDOFF.md": renderAgentHandoff(record), "RUN_RECORD.json": `${JSON.stringify(record, null, 2)}\n`,
+    "AGENT_HANDOFF.md": renderAgentHandoff(record), "QUALITY_REVIEW.md": renderQualityReview(record),
+    "RUN_RECORD.json": `${JSON.stringify(record, null, 2)}\n`,
   };
   const runDir = await writeBundle(git.root, runId, files);
   return { record, runDir };

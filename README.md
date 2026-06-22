@@ -2,7 +2,7 @@
 
 Clean handoffs for AI-built code.
 
-Relaypoint is a local-first CLI that turns an AI-assisted coding session into a reviewable evidence bundle. Run it from a Git repository root to capture repository state, changed files, recent commits, deterministic risk flags, validation evidence, and continuation context.
+Relaypoint is a local-first CLI that turns an AI-assisted coding session into a reviewable evidence bundle. Run it from a Git repository root to capture repository state, changed files, recent commits, deterministic risk flags, validation evidence, quality-review signals, and continuation context.
 
 > Relaypoint does not decide what to build next. It preserves evidence so a human developer or future agent can continue with better context.
 
@@ -57,11 +57,13 @@ Each invocation writes files inside the inspected repository:
     HANDOFF.md
     QA_REPORT.md
     AGENT_HANDOFF.md
+    QUALITY_REVIEW.md
     RUN_RECORD.json
   latest/
     HANDOFF.md
     QA_REPORT.md
     AGENT_HANDOFF.md
+    QUALITY_REVIEW.md
     RUN_RECORD.json
 ```
 
@@ -69,15 +71,20 @@ Run IDs retain milliseconds to avoid overwriting rapid consecutive runs and cont
 
 `AGENT_HANDOFF.md` preserves repository state, grouped changed files, validation evidence, risk flags, review focus, and explicit do-not-assume warnings. It is continuation context, not a prompt that invents or assigns another task.
 
+`QUALITY_REVIEW.md` applies deterministic, line-based heuristics to changed files only. It highlights possible simplification targets and readability or maintainability signals such as large files, long functions, deep nesting, long lines, review markers, broad helper files, dense documentation sections, repeated headings, and repeated prose. Generated Relaypoint output, dependencies, build output, and coverage output are excluded.
+
+Quality Review uses no AI, LLM calls, external APIs, or network access. It never rewrites files. Findings are review targets, not proof of defects or correctness; false positives and false negatives are expected. The goal is to reduce avoidable slop and surface possible readability, simplicity, and elegance improvements while leaving judgment with the reviewer.
+
 ## v0 scope
 
-Relaypoint v0 supports Git inspection, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, Markdown reports, and a JSON run record.
+Relaypoint v0.1 supports Git inspection, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, Markdown reports, and a JSON run record.
 
 It has no external AI API, network requirement, API key, hosted service, database, authentication, dashboard, spend tracking, deep code review, autonomous agent, marketplace, or knowledge-base system. Python validation is suggested when detectable but is not executed in v0.
 
 ## Limitations
 
 - Classification and risk flags are path-based heuristics.
+- Quality findings use intentionally shallow line- and pattern-based heuristics; they may produce false positives or miss semantic concerns.
 - Relaypoint records command outcomes but cannot prove semantic correctness.
 - It does not know the session's original intent.
 - Output previews are capped; large logs are truncated.
@@ -85,4 +92,4 @@ It has no external AI API, network requirement, API key, hosted service, databas
 
 ## Roadmap
 
-Near-term work can improve fixture coverage, Git edge-case handling, configurable output limits, additional deterministic project detectors, and a versioned schema migration policy. A later version may add deterministic quality review for simplification, readability, elegance, and AI slop reduction. These additions should preserve the local-first, evidence-only boundary.
+Near-term work can improve fixture coverage, Git edge-case handling, configurable quality thresholds, additional deterministic project detectors, and a versioned schema migration policy. These additions should preserve the local-first, evidence-only boundary.

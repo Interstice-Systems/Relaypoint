@@ -12,7 +12,14 @@ export const mockProject = { type: "node" as const, package_manager: "npm" as co
 describe("run record", () => {
   it("has the stable v0 shape and agent handoff output", () => {
     const record = createRunRecord({ runId: "2026-06-21T00-00-00Z", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [] });
-    expect(record).toMatchObject({ schema_version: "0.1.0", tool: "relaypoint", repo: { name: "example", is_git_repo: true }, validation: { commands_discovered: ["npm run test"] }, outputs: { agent_handoff: "AGENT_HANDOFF.md" } });
+    expect(record).toMatchObject({ schema_version: "0.1.0", tool: "relaypoint", repo: { name: "example", is_git_repo: true }, validation: { commands_discovered: ["npm run test"] }, quality_review: { enabled: true, mode: "heuristic", finding_count: 0 }, outputs: { agent_handoff: "AGENT_HANDOFF.md", quality_review: "QUALITY_REVIEW.md" } });
     expect(record.outputs).not.toHaveProperty("next_agent_prompt");
+  });
+
+  it("does not convert quality findings into validation failures", () => {
+    const qualityReview = { enabled: true as const, mode: "heuristic" as const, filesReviewed: 1, findingCount: 1, highestSeverity: "high" as const, findings: [{ file: "src/index.ts", category: "long-function", severity: "high" as const, message: "May deserve review.", evidence: "90 lines.", reviewFocus: "Inspect readability." }] };
+    const record = createRunRecord({ runId: "fixed", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: ["test"], results: [{ script: "test", command: "npm run test", status: "passed", exit_code: 0, duration_ms: 1, stdout_preview: "", stderr_preview: "" }], qualityReview });
+    expect(record.readiness).toBe("READY_FOR_REVIEW");
+    expect(record.quality_review.highest_severity).toBe("high");
   });
 });

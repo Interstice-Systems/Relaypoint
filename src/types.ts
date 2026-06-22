@@ -20,6 +20,31 @@ export interface ValidationResult {
   stderr_preview: string;
   reason?: string;
 }
+export type QualitySeverity = "high" | "medium" | "low";
+export interface QualityFinding {
+  file: string;
+  category: string;
+  severity: QualitySeverity;
+  message: string;
+  evidence: string;
+  reviewFocus: string;
+}
+export interface QualityReview {
+  enabled: true;
+  mode: "heuristic";
+  filesReviewed: number;
+  findingCount: number;
+  highestSeverity: QualitySeverity | null;
+  findings: QualityFinding[];
+}
+export interface QualityReviewRecord {
+  enabled: true;
+  mode: "heuristic";
+  files_reviewed: number;
+  finding_count: number;
+  highest_severity: QualitySeverity | null;
+  findings: Array<Omit<QualityFinding, "reviewFocus"> & { review_focus: string }>;
+}
 export interface RunRecord {
   schema_version: "0.1.0";
   tool: "relaypoint";
@@ -40,5 +65,6 @@ export interface RunRecord {
   };
   risk_flags: string[];
   readiness: Readiness;
-  outputs: { handoff: "HANDOFF.md"; qa_report: "QA_REPORT.md"; agent_handoff: "AGENT_HANDOFF.md" };
+  quality_review: QualityReviewRecord;
+  outputs: { handoff: "HANDOFF.md"; qa_report: "QA_REPORT.md"; agent_handoff: "AGENT_HANDOFF.md"; quality_review: "QUALITY_REVIEW.md" };
 }

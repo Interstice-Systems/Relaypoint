@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderAgentHandoff, renderHandoff, renderQaReport } from "../src/renderMarkdown.js";
+import { renderAgentHandoff, renderHandoff, renderQaReport, renderQualityReview } from "../src/renderMarkdown.js";
 import { createRunRecord } from "../src/runRecord.js";
 import { mockGit, mockProject } from "./runRecord.test.js";
 
@@ -26,4 +26,13 @@ describe("Markdown rendering", () => {
   });
 
   it("is deterministic for fixed input", () => expect(renderAgentHandoff(record)).toBe(renderAgentHandoff(record)));
+
+  it("renders deterministic quality findings grouped by severity", () => {
+    const qualityRecord = createRunRecord({ runId: "fixed", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [], qualityReview: { enabled: true, mode: "heuristic", filesReviewed: 1, findingCount: 1, highestSeverity: "medium", findings: [{ file: "src/index.ts", category: "review-marker", severity: "medium", message: "A marker may deserve review.", evidence: "TODO at line 4", reviewFocus: "Confirm the marker is current." }] } });
+    const output = renderQualityReview(qualityRecord);
+    expect(output).toBe(renderQualityReview(qualityRecord));
+    expect(output).toContain("### medium");
+    expect(output).toContain("TODO at line 4");
+    expect(output).toContain("findings are review targets, not proof of defects");
+  });
 });
