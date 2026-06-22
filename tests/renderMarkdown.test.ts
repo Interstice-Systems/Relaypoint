@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { renderAgentHandoff, renderHandoff, renderQaReport, renderQualityReview } from "../src/renderMarkdown.js";
+import { renderAgentHandoff, renderHandoff, renderQaReport, renderQualityReview, renderRunComparison } from "../src/renderMarkdown.js";
 import { createRunRecord } from "../src/runRecord.js";
+import { compareRuns } from "../src/runComparison.js";
 import { mockGit, mockProject } from "./runRecord.test.js";
 
 const record = createRunRecord({ runId: "2026-06-21T00-00-00Z", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [] });
@@ -34,5 +35,28 @@ describe("Markdown rendering", () => {
     expect(output).toContain("### medium");
     expect(output).toContain("TODO at line 4");
     expect(output).toContain("findings are review targets, not proof of defects");
+  });
+
+  it("renders evidence-only comparison output", () => {
+    const output = renderRunComparison(record);
+    expect(output).toContain("# Run Comparison");
+    expect(output).toContain("recorded evidence only");
+    expect(output).toContain("matches exact recorded keys deterministically");
+    expect(output.toLowerCase()).not.toContain("next agent should");
+  });
+
+  it("distinguishes disabled comparison from unavailable comparison", () => {
+    const disabled = createRunRecord({ runId: "disabled", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [], comparison: { enabled: false, available: false, reason: "Comparison disabled by --no-compare." } });
+    expect(renderRunComparison(disabled)).toContain("Comparison status: disabled");
+  });
+
+  it("caps long comparison lists and points to the full JSON evidence", () => {
+    const previous = createRunRecord({ runId: "previous", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [] });
+    const current = createRunRecord({ runId: "current", createdAt: "2026-06-21T00:01:00.000Z", git: mockGit, project: mockProject, requested: [], results: [] });
+    current.changed_files = Array.from({ length: 12 }, (_, index) => ({ path: `file-${String(index).padStart(2, "0")}.ts`, status: " M", category: "source" }));
+    current.comparison = compareRuns(previous, current);
+    const output = renderRunComparison(current);
+    expect(output).toContain("2 more; see `RUN_RECORD.json` for full comparison evidence.");
+    expect(output).not.toContain("`file-11.ts`");
   });
 });

@@ -43,9 +43,12 @@ After `npm link` (or package installation), the eventual command is:
 ```bash
 relaypoint handoff
 relaypoint handoff --run test --run build
+relaypoint handoff --no-compare
 ```
 
 `--run` accepts a package script name, may be repeated, and never accepts an arbitrary shell command. Discovered scripts are not run automatically. A missing requested script is recorded as skipped. The compiled `dist/cli.js` command requires `npm run build` first.
+
+By default, `handoff` compares the new evidence bundle with the most recent valid Relaypoint run. Use `--no-compare` to disable comparison for one run.
 
 ## Local output
 
@@ -58,12 +61,14 @@ Each invocation writes files inside the inspected repository:
     QA_REPORT.md
     AGENT_HANDOFF.md
     QUALITY_REVIEW.md
+    RUN_COMPARISON.md
     RUN_RECORD.json
   latest/
     HANDOFF.md
     QA_REPORT.md
     AGENT_HANDOFF.md
     QUALITY_REVIEW.md
+    RUN_COMPARISON.md
     RUN_RECORD.json
 ```
 
@@ -75,9 +80,13 @@ Run IDs retain milliseconds to avoid overwriting rapid consecutive runs and cont
 
 Quality Review uses no AI, LLM calls, external APIs, or network access. It never rewrites files. Findings are review targets, not proof of defects or correctness; false positives and false negatives are expected. The goal is to reduce avoidable slop and surface possible readability, simplicity, and elegance improvements while leaving judgment with the reviewer.
 
+`RUN_COMPARISON.md` records what changed between the current run and the most recent valid previous run. It reports readiness movement, added/removed/persistent risk flags, newly/no-longer/still changed files, validation changes by command, and deterministic quality-finding count changes. If no prior valid run exists, the report records that comparison evidence is unavailable. Relaypoint selects the prior run before writing the current bundle, so a run cannot compare against itself.
+
+Run comparison uses recorded evidence only. It cannot infer intent, semantic correctness, whether a changed file is complete, or what work should happen next. Validation comparisons reflect stored command statuses, and quality findings match only on the deterministic key `file + category + message`; they are not semantic matches.
+
 ## v0 scope
 
-Relaypoint v0.1 supports Git inspection, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, Markdown reports, and a JSON run record.
+Relaypoint v0.2 supports Git inspection, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, comparison with the previous recorded run, Markdown reports, and a schema-versioned JSON run record. New v0.2 run records use schema version `0.2.0`.
 
 It has no external AI API, network requirement, API key, hosted service, database, authentication, dashboard, spend tracking, deep code review, autonomous agent, marketplace, or knowledge-base system. Python validation is suggested when detectable but is not executed in v0.
 
@@ -85,6 +94,7 @@ It has no external AI API, network requirement, API key, hosted service, databas
 
 - Classification and risk flags are path-based heuristics.
 - Quality findings use intentionally shallow line- and pattern-based heuristics; they may produce false positives or miss semantic concerns.
+- Run comparison depends on available, readable prior run records and uses exact command, path, risk-flag, and finding keys.
 - Relaypoint records command outcomes but cannot prove semantic correctness.
 - It does not know the session's original intent.
 - Output previews are capped; large logs are truncated.

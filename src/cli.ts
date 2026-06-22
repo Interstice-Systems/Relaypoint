@@ -4,14 +4,14 @@ import { createHandoff } from "./index.js";
 import { parseArgs, USAGE } from "./cliArgs.js";
 
 async function main(): Promise<void> {
-  const { command, run, help } = parseArgs(process.argv.slice(2));
+  const { command, run, compare, help } = parseArgs(process.argv.slice(2));
   if (help) { console.log(USAGE); return; }
   if (command !== "handoff") throw new Error(`Unknown command: ${command}`);
-  const { record, runDir } = await createHandoff({ run });
+  const { record, runDir } = await createHandoff({ run, compare });
   console.log(`Readiness: ${record.readiness}`);
   console.log(`Run output: ${runDir}`);
   console.log(`Latest output: ${path.join(record.repo.root, ".relaypoint", "latest")}`);
-  console.log("Files: HANDOFF.md, QA_REPORT.md, AGENT_HANDOFF.md, QUALITY_REVIEW.md, RUN_RECORD.json");
+  console.log("Files: HANDOFF.md, QA_REPORT.md, AGENT_HANDOFF.md, QUALITY_REVIEW.md, RUN_COMPARISON.md, RUN_RECORD.json");
 }
 
 main().catch((error: unknown) => {

@@ -45,8 +45,42 @@ export interface QualityReviewRecord {
   highest_severity: QualitySeverity | null;
   findings: Array<Omit<QualityFinding, "reviewFocus"> & { review_focus: string }>;
 }
+export type ReadinessMovement = "improved" | "regressed" | "unchanged" | "unknown";
+export interface RunComparisonSummary {
+  readiness_previous: Readiness;
+  readiness_current: Readiness;
+  readiness_change: ReadinessMovement;
+  risk_flags_added: string[];
+  risk_flags_removed: string[];
+  risk_flags_persistent: string[];
+  changed_files_added: string[];
+  changed_files_removed: string[];
+  changed_files_persistent: string[];
+  validation_improved: string[];
+  validation_regressed: string[];
+  validation_unchanged_passing: string[];
+  validation_unchanged_failing: string[];
+  validation_newly_run: string[];
+  validation_no_longer_run: string[];
+  validation_skipped: string[];
+  quality_findings_added: number;
+  quality_findings_removed: number;
+  quality_finding_count_previous: number;
+  quality_finding_count_current: number;
+  quality_highest_severity_previous: QualitySeverity | null;
+  quality_highest_severity_current: QualitySeverity | null;
+  quality_highest_severity_change: ReadinessMovement;
+}
+export interface RunComparison {
+  enabled: boolean;
+  available: boolean;
+  reason?: string;
+  previous_run_id?: string;
+  previous_created_at?: string;
+  summary?: RunComparisonSummary;
+}
 export interface RunRecord {
-  schema_version: "0.1.0";
+  schema_version: "0.2.0";
   tool: "relaypoint";
   run_id: string;
   created_at: string;
@@ -66,5 +100,6 @@ export interface RunRecord {
   risk_flags: string[];
   readiness: Readiness;
   quality_review: QualityReviewRecord;
-  outputs: { handoff: "HANDOFF.md"; qa_report: "QA_REPORT.md"; agent_handoff: "AGENT_HANDOFF.md"; quality_review: "QUALITY_REVIEW.md" };
+  comparison: RunComparison;
+  outputs: { handoff: "HANDOFF.md"; qa_report: "QA_REPORT.md"; agent_handoff: "AGENT_HANDOFF.md"; quality_review: "QUALITY_REVIEW.md"; run_comparison: "RUN_COMPARISON.md" };
 }

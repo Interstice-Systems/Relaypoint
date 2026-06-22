@@ -1,6 +1,10 @@
 import type { ChangedFile, RunRecord, ValidationResult } from "./types.js";
 
 function list(items: string[], empty = "None recorded."): string { return items.length ? items.map((item) => `- ${item}`).join("\n") : `- ${empty}`; }
+function cappedList(items: string[], limit = 10): string {
+  if (items.length <= limit) return list(items);
+  return `${list(items.slice(0, limit))}\n- ${items.length - limit} more; see \`RUN_RECORD.json\` for full comparison evidence.`;
+}
 function changed(files: ChangedFile[]): string { return list(files.map((file) => `\`${file.path}\` (${file.status.trim() || "modified"}, ${file.category})`), "No changed files detected."); }
 function validations(results: ValidationResult[]): string {
   return results.length ? results.map((result) => {
@@ -63,4 +67,25 @@ export function renderQualityReview(record: RunRecord): string {
   }).join("\n\n");
   const status = review.finding_count ? "Review targets identified" : "No heuristic findings identified";
   return `# Quality Review\n\nThis report uses deterministic heuristics to highlight files and patterns that may deserve simplification or closer human review.\n\nIt does not prove correctness.\nIt does not replace human review.\nIt does not automatically rewrite code or text.\n\n## Summary\n\n- Files reviewed: ${review.files_reviewed}\n- Findings: ${review.finding_count}\n- Highest severity: ${review.highest_severity ?? "none"}\n- Review status: ${status}\n\n## Heuristic Findings\n\n${grouped || "- No heuristic findings."}\n\n## Code Simplicity Signals\n\nThe deterministic review checks changed source files for file size, long functions, approximate nesting depth, repeated long lines, review markers, broad helper modules, large export surfaces, repeated \`any\`, and repeated console logging.\n\n## Text / Documentation Signals\n\nThe deterministic review checks changed text files for long sections, repeated headings, repeated long lines, dense bullet sequences, repeated phrases, and excess blank space.\n\n## Review Guidance\n\nThese findings are review targets, not proof of defects. A finding indicates that a pattern crossed a fixed threshold and may deserve closer human review. Context, intent, validation evidence, and human judgment remain authoritative.\n`;
+}
+
+export function renderRunComparison(record: RunRecord): string {
+  const comparison = record.comparison;
+  const intro = `# Run Comparison\n\nThis report compares the current Relaypoint run with the previous available Relaypoint run.\n\nIt uses recorded evidence only.\nIt matches exact recorded keys deterministically and does not infer semantic equivalence.\nIt does not decide what should be built next or replace human review.`;
+  if (!comparison.available || !comparison.summary) {
+    const status = comparison.enabled ? "unavailable" : "disabled";
+    return `${intro}\n\n## Summary\n\n- Comparison status: ${status}\n- Current run: ${record.run_id}\n- Reason: ${comparison.reason ?? "Comparison evidence is unavailable."}\n\n## Review Context\n\n- No run comparison evidence was produced.\n`;
+  }
+  const summary = comparison.summary;
+  const previousReadiness = summary.readiness_previous;
+  const validationChangeCount = new Set([...summary.validation_improved, ...summary.validation_regressed, ...summary.validation_newly_run, ...summary.validation_no_longer_run, ...summary.validation_skipped]).size;
+  const context: string[] = [];
+  if (summary.risk_flags_added.length) context.push("Risks were added since the previous run.");
+  if (summary.risk_flags_removed.length) context.push("Risk flags were removed since the previous run.");
+  if (summary.validation_improved.length) context.push("Validation improved since the previous run.");
+  if (summary.validation_regressed.length) context.push("Validation regressed since the previous run.");
+  if (summary.quality_finding_count_current < summary.quality_finding_count_previous) context.push("Quality finding count decreased.");
+  if (summary.quality_finding_count_current > summary.quality_finding_count_previous) context.push("Quality finding count increased.");
+  if (summary.changed_files_persistent.length) context.push("The same files remain changed across runs.");
+  return `${intro}\n\n## Summary\n\n- Comparison status: available\n- Previous run: ${comparison.previous_run_id}\n- Current run: ${record.run_id}\n- Readiness change: ${summary.readiness_change}\n- Risks: ${summary.risk_flags_added.length} added, ${summary.risk_flags_removed.length} removed\n- Validation changes: ${validationChangeCount}\n- Quality findings: ${summary.quality_findings_added} added, ${summary.quality_findings_removed} removed\n- Changed files: ${summary.changed_files_added.length} new, ${summary.changed_files_removed.length} no longer changed, ${summary.changed_files_persistent.length} persistent\n\n## Readiness\n\n- Previous readiness: ${previousReadiness}\n- Current readiness: ${record.readiness}\n- Movement: ${summary.readiness_change}\n\n## Risk Flag Changes\n\n### Added risk flags\n\n${cappedList(summary.risk_flags_added)}\n\n### Removed risk flags\n\n${cappedList(summary.risk_flags_removed)}\n\n### Persistent risk flags\n\n${cappedList(summary.risk_flags_persistent)}\n\n## Changed File Movement\n\n### Newly changed files\n\n${cappedList(summary.changed_files_added.map((file) => `\`${file}\``))}\n\n### No-longer changed files\n\n${cappedList(summary.changed_files_removed.map((file) => `\`${file}\``))}\n\n### Still changed files\n\n${cappedList(summary.changed_files_persistent.map((file) => `\`${file}\``))}\n\n## Validation Changes\n\n### Improved\n\n${cappedList(summary.validation_improved.map((command) => `\`${command}\``))}\n\n### Regressed\n\n${cappedList(summary.validation_regressed.map((command) => `\`${command}\``))}\n\n### Unchanged passing\n\n${cappedList(summary.validation_unchanged_passing.map((command) => `\`${command}\``))}\n\n### Unchanged failing\n\n${cappedList(summary.validation_unchanged_failing.map((command) => `\`${command}\``))}\n\n### Newly run\n\n${cappedList(summary.validation_newly_run.map((command) => `\`${command}\``))}\n\n### No longer run\n\n${cappedList(summary.validation_no_longer_run.map((command) => `\`${command}\``))}\n\n### Skipped\n\n${cappedList(summary.validation_skipped.map((command) => `\`${command}\``))}\n\n## Quality Review Changes\n\n- Previous finding count: ${summary.quality_finding_count_previous}\n- Current finding count: ${summary.quality_finding_count_current}\n- Highest severity: ${summary.quality_highest_severity_previous ?? "none"} → ${summary.quality_highest_severity_current ?? "none"} (${summary.quality_highest_severity_change})\n- Finding count change: ${summary.quality_finding_count_current - summary.quality_finding_count_previous}\n- Added finding count: ${summary.quality_findings_added}\n- Removed finding count: ${summary.quality_findings_removed}\n\n## Review Context\n\n${list(context, "No comparison movement requiring additional context was recorded.")}\n`;
 }

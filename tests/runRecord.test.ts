@@ -10,9 +10,9 @@ export const mockGit: GitState = {
 export const mockProject = { type: "node" as const, package_manager: "npm" as const, name: "example", scripts: { test: "vitest" }, validation_suggestions: [] };
 
 describe("run record", () => {
-  it("has the stable v0 shape and agent handoff output", () => {
+  it("has the stable v0.2 schema and output references", () => {
     const record = createRunRecord({ runId: "2026-06-21T00-00-00Z", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [] });
-    expect(record).toMatchObject({ schema_version: "0.1.0", tool: "relaypoint", repo: { name: "example", is_git_repo: true }, validation: { commands_discovered: ["npm run test"] }, quality_review: { enabled: true, mode: "heuristic", finding_count: 0 }, outputs: { agent_handoff: "AGENT_HANDOFF.md", quality_review: "QUALITY_REVIEW.md" } });
+    expect(record).toMatchObject({ schema_version: "0.2.0", tool: "relaypoint", repo: { name: "example", is_git_repo: true }, validation: { commands_discovered: ["npm run test"] }, quality_review: { enabled: true, mode: "heuristic", finding_count: 0 }, comparison: { enabled: true, available: false }, outputs: { agent_handoff: "AGENT_HANDOFF.md", quality_review: "QUALITY_REVIEW.md", run_comparison: "RUN_COMPARISON.md" } });
     expect(record.outputs).not.toHaveProperty("next_agent_prompt");
   });
 
