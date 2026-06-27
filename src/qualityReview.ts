@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { isRelaypointOutput } from "./classifyFiles.js";
-import type { ChangedFile, QualityFinding, QualityReview, QualitySeverity } from "./types.js";
+import type { ChangedFile, ProjectProfileQuality, QualityFinding, QualityReview, QualitySeverity } from "./types.js";
 
 const excluded = /(^|\/)(node_modules|dist|coverage)(\/|$)/;
 const sourceExtension = /\.(?:[cm]?[jt]sx?)$/i;
@@ -34,19 +34,23 @@ function structuralText(line: string): string {
     .replace(/\/(?:\\.|[^/\\])+\/[a-z]*/gi, "");
 }
 
-function analyzeGeneral(file: ChangedFile, lines: string[]): QualityFinding[] {
+function analyzeGeneral(file: ChangedFile, lines: string[], quality?: ProjectProfileQuality): QualityFinding[] {
   const findings: QualityFinding[] = [];
-  if (lines.length > thresholds.fileLines.high) findings.push(finding(file.path, "file-size", "high", "This changed file is large and may deserve review.", `${lines.length} lines (threshold: ${thresholds.fileLines.high}).`, "Check whether the file has distinct responsibilities that can be understood independently."));
+  const fileLimit = quality?.max_file_lines;
+  if (fileLimit) {
+    if (lines.length > fileLimit) findings.push(finding(file.path, "file-size", "high", "This changed file exceeds the project profile limit and may deserve review.", `${lines.length} lines (profile threshold: ${fileLimit}).`, "Check whether the file has distinct responsibilities that can be understood independently."));
+  } else if (lines.length > thresholds.fileLines.high) findings.push(finding(file.path, "file-size", "high", "This changed file is large and may deserve review.", `${lines.length} lines (threshold: ${thresholds.fileLines.high}).`, "Check whether the file has distinct responsibilities that can be understood independently."));
   else if (lines.length > thresholds.fileLines.medium) findings.push(finding(file.path, "changed-file-size", "medium", "This changed file may be a possible simplification target.", `${lines.length} lines (threshold: ${thresholds.fileLines.medium}).`, "Review the file structure and whether its responsibilities remain clear."));
 
-  const longLines = lineNumbers(lines, (line) => line.length > thresholds.longLine.characters);
-  if (longLines.length >= thresholds.longLine.minimumCount) findings.push(finding(file.path, "long-line", "low", "Repeated long lines may reduce readability.", `${longLines.length} lines exceed ${thresholds.longLine.characters} characters; first at line ${longLines[0]}.`, "Check whether the long expressions or prose can be made easier to scan."));
+  const lineLimit = quality?.max_line_length ?? thresholds.longLine.characters;
+  const longLines = lineNumbers(lines, (line) => line.length > lineLimit);
+  if (longLines.length >= thresholds.longLine.minimumCount) findings.push(finding(file.path, "long-line", "low", "Repeated long lines may reduce readability.", `${longLines.length} lines exceed ${lineLimit} characters; first at line ${longLines[0]}.`, "Check whether the long expressions or prose can be made easier to scan."));
 
   const markers = lines.flatMap((line, index) => {
     const searchable = ["source", "test"].includes(file.category) && !/^\s*(?:\/\/|\/\*|\*)/.test(line) ? "" : line;
     return [...searchable.matchAll(/\b(TODO|FIXME|HACK)\b/gi)].map((match) => `${match[1].toUpperCase()} at line ${index + 1}`);
   });
-  if (markers.length) {
+  if (markers.length && quality?.allow_todos !== true) {
     const remainder = markers.length > 5 ? `, plus ${markers.length - 5} more` : "";
     findings.push(finding(file.path, "review-marker", "medium", "Explicit review markers may indicate unfinished or intentionally deferred work.", `${markers.slice(0, 5).join(", ")}${remainder}.`, "Confirm each marker is intentional, current, and understandable to a reviewer."));
   }
@@ -75,10 +79,11 @@ function functionRanges(lines: string[]): Array<{ start: number; end: number }> 
   return ranges;
 }
 
-function analyzeSource(file: ChangedFile, lines: string[]): QualityFinding[] {
+function analyzeSource(file: ChangedFile, lines: string[], quality?: ProjectProfileQuality): QualityFinding[] {
   const findings: QualityFinding[] = [];
-  const longFunctions = functionRanges(lines).filter((range) => range.end - range.start + 1 > thresholds.longFunctionLines);
-  if (longFunctions.length) findings.push(finding(file.path, "long-function", "high", "A function appears long enough to deserve closer review.", `${longFunctions.length} function(s) exceed ${thresholds.longFunctionLines} lines; first spans lines ${longFunctions[0].start}-${longFunctions[0].end}.`, "Check whether the function's control flow and responsibilities can be understood in smaller units."));
+  const functionLimit = quality?.max_function_lines ?? thresholds.longFunctionLines;
+  const longFunctions = functionRanges(lines).filter((range) => range.end - range.start + 1 > functionLimit);
+  if (longFunctions.length) findings.push(finding(file.path, "long-function", "high", "A function appears long enough to deserve closer review.", `${longFunctions.length} function(s) exceed ${functionLimit} lines; first spans lines ${longFunctions[0].start}-${longFunctions[0].end}.`, "Check whether the function's control flow and responsibilities can be understood in smaller units."));
 
   let depth = 0;
   let maximum = 0;
@@ -138,7 +143,7 @@ function analyzeText(file: ChangedFile, lines: string[]): QualityFinding[] {
   return findings;
 }
 
-export async function reviewChangedFiles(repoRoot: string, changedFiles: ChangedFile[]): Promise<QualityReview> {
+export async function reviewChangedFiles(repoRoot: string, changedFiles: ChangedFile[], quality?: ProjectProfileQuality): Promise<QualityReview> {
   const findings: QualityFinding[] = [];
   let filesReviewed = 0;
   for (const file of changedFiles) {
@@ -155,8 +160,8 @@ export async function reviewChangedFiles(repoRoot: string, changedFiles: Changed
     if (contents.includes("\0")) continue;
     filesReviewed += 1;
     const lines = contents.split(/\r?\n/);
-    findings.push(...analyzeGeneral(file, lines));
-    if (sourceExtension.test(normalized)) findings.push(...analyzeSource(file, lines));
+    findings.push(...analyzeGeneral(file, lines, quality));
+    if (sourceExtension.test(normalized)) findings.push(...analyzeSource(file, lines, quality));
     if (textExtension.test(normalized)) findings.push(...analyzeText(file, lines));
   }
   findings.sort((a, b) => severityRank[b.severity] - severityRank[a.severity] || a.file.localeCompare(b.file) || a.category.localeCompare(b.category));

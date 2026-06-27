@@ -76,4 +76,19 @@ describe("run comparison", () => {
       expect(await findPreviousRun(root, "2026-06-21T10-00-00-000Z")).toBeNull();
     } finally { await rm(root, { recursive: true, force: true }); }
   });
+
+  it("selects same-timestamp siblings in numeric suffix order", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "relaypoint-sibling-order-"));
+    const base = "2026-06-21T10-00-00-000Z";
+    try {
+      const older = fixture("collision-999");
+      const newer = fixture("collision-1000");
+      await mkdir(path.join(root, ".relaypoint", "runs", `${base}-999`), { recursive: true });
+      await writeFile(path.join(root, ".relaypoint", "runs", `${base}-999`, "RUN_RECORD.json"), JSON.stringify(older));
+      await mkdir(path.join(root, ".relaypoint", "runs", `${base}-1000`), { recursive: true });
+      await writeFile(path.join(root, ".relaypoint", "runs", `${base}-1000`, "RUN_RECORD.json"), JSON.stringify(newer));
+
+      expect((await findPreviousRun(root))?.run_id).toBe(newer.run_id);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  });
 });

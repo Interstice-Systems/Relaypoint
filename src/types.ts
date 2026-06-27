@@ -37,6 +37,45 @@ export interface QualityReview {
   highestSeverity: QualitySeverity | null;
   findings: QualityFinding[];
 }
+export interface ProjectProfileQuality {
+  max_file_lines: number | null;
+  max_function_lines: number | null;
+  max_line_length: number | null;
+  allow_todos: boolean;
+}
+export interface ProjectProfile {
+  schema_version: string;
+  project_name: string;
+  description: string;
+  critical_paths: string[];
+  ignored_paths: string[];
+  preferred_validation: string[];
+  review_focus: string[];
+  quality: ProjectProfileQuality;
+  notes: string[];
+}
+export interface LoadedProjectProfile {
+  enabled: true;
+  loaded: boolean;
+  path: ".relaypoint/project_profile.json";
+  profile: ProjectProfile;
+  warnings: string[];
+}
+export interface ProjectProfileRecord {
+  enabled: true;
+  loaded: boolean;
+  path: ".relaypoint/project_profile.json";
+  schema_version?: string;
+  project_name?: string;
+  warnings: string[];
+  critical_paths_matched?: string[];
+  ignored_paths_applied?: string[];
+  preferred_validation?: string[];
+  review_focus?: string[];
+  description?: string;
+  quality?: ProjectProfileQuality;
+  notes?: string[];
+}
 export interface QualityReviewRecord {
   enabled: true;
   mode: "heuristic";
@@ -80,7 +119,7 @@ export interface RunComparison {
   summary?: RunComparisonSummary;
 }
 export interface RunRecord {
-  schema_version: "0.2.0";
+  schema_version: "0.3.0";
   tool: "relaypoint";
   run_id: string;
   created_at: string;
@@ -100,6 +139,7 @@ export interface RunRecord {
   risk_flags: string[];
   readiness: Readiness;
   quality_review: QualityReviewRecord;
+  project_profile: ProjectProfileRecord;
   comparison: RunComparison;
   outputs: { handoff: "HANDOFF.md"; qa_report: "QA_REPORT.md"; agent_handoff: "AGENT_HANDOFF.md"; quality_review: "QUALITY_REVIEW.md"; run_comparison: "RUN_COMPARISON.md" };
 }

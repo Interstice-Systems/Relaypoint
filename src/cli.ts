@@ -2,10 +2,16 @@
 import path from "node:path";
 import { createHandoff } from "./index.js";
 import { parseArgs, USAGE } from "./cliArgs.js";
+import { initializeProjectProfile } from "./projectProfile.js";
 
 async function main(): Promise<void> {
   const { command, run, compare, help } = parseArgs(process.argv.slice(2));
   if (help) { console.log(USAGE); return; }
+  if (command === "init") {
+    const profilePath = await initializeProjectProfile(process.cwd());
+    console.log(`Created project profile: ${profilePath}`);
+    return;
+  }
   if (command !== "handoff") throw new Error(`Unknown command: ${command}`);
   const { record, runDir } = await createHandoff({ run, compare });
   console.log(`Readiness: ${record.readiness}`);

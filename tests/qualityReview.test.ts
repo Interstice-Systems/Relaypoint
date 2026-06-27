@@ -61,4 +61,27 @@ describe("deterministic quality review", () => {
       ["low", "src/z.ts", "long-line"],
     ]);
   });
+
+  it("applies profile limits as overrides and keeps null limits on defaults", async () => {
+    const source = `${Array.from({ length: 400 }, (_, index) => `const value${index} = ${index};`).join("\n")}\n`;
+    const root = await fixture({ "src/size.ts": source });
+    const defaults = await reviewChangedFiles(root, [changed("src/size.ts", "source")]);
+    const raised = await reviewChangedFiles(root, [changed("src/size.ts", "source")], { max_file_lines: 500, max_function_lines: null, max_line_length: null, allow_todos: false });
+    const nullLimits = await reviewChangedFiles(root, [changed("src/size.ts", "source")], { max_file_lines: null, max_function_lines: null, max_line_length: null, allow_todos: false });
+    expect(defaults.findings.map((item) => item.category)).toContain("changed-file-size");
+    expect(raised.findings.map((item) => item.category)).not.toContain("changed-file-size");
+    expect(raised.findings.map((item) => item.category)).not.toContain("file-size");
+    expect(nullLimits.findings.map((item) => item.category)).toContain("changed-file-size");
+  });
+
+  it("applies line-length and TODO preferences without changing missing-profile defaults", async () => {
+    const longLine = `// ${"x".repeat(40)}`;
+    const root = await fixture({ "src/preferences.ts": `${longLine}\n${longLine}\n${longLine}\n${longLine}\n${longLine}\n// TODO: owner accepted\n` });
+    const defaults = await reviewChangedFiles(root, [changed("src/preferences.ts", "source")]);
+    const profiled = await reviewChangedFiles(root, [changed("src/preferences.ts", "source")], { max_file_lines: null, max_function_lines: null, max_line_length: 20, allow_todos: true });
+    expect(defaults.findings.map((item) => item.category)).toContain("review-marker");
+    expect(defaults.findings.map((item) => item.category)).not.toContain("long-line");
+    expect(profiled.findings.map((item) => item.category)).toContain("long-line");
+    expect(profiled.findings.map((item) => item.category)).not.toContain("review-marker");
+  });
 });

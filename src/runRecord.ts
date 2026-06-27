@@ -1,10 +1,10 @@
-import type { DetectedProject, QualityReview, RunComparison, RunRecord, ValidationResult } from "./types.js";
+import type { DetectedProject, ProjectProfileRecord, QualityReview, RunComparison, RunRecord, ValidationResult } from "./types.js";
 import type { GitState } from "./git.js";
 import { determineReadiness, generateRiskFlags } from "./riskFlags.js";
 import { discoverValidationCommands } from "./validation.js";
 import { toQualityReviewRecord } from "./qualityReview.js";
 
-export function createRunRecord(input: { runId: string; createdAt: string; git: GitState; project: DetectedProject; requested: string[]; results: ValidationResult[]; qualityReview?: QualityReview; comparison?: RunComparison }): RunRecord {
+export function createRunRecord(input: { runId: string; createdAt: string; git: GitState; project: DetectedProject; requested: string[]; results: ValidationResult[]; projectProfile?: ProjectProfileRecord; qualityReview?: QualityReview; comparison?: RunComparison }): RunRecord {
   const discovered = discoverValidationCommands(input.project);
   const riskFlags = generateRiskFlags({
     isGitRepo: input.git.isGitRepo, workingTreeClean: input.git.workingTreeClean,
@@ -13,7 +13,7 @@ export function createRunRecord(input: { runId: string; createdAt: string; git: 
   });
   const qualityReview = input.qualityReview ?? { enabled: true, mode: "heuristic", filesReviewed: 0, findingCount: 0, highestSeverity: null, findings: [] };
   return {
-    schema_version: "0.2.0", tool: "relaypoint", run_id: input.runId, created_at: input.createdAt,
+    schema_version: "0.3.0", tool: "relaypoint", run_id: input.runId, created_at: input.createdAt,
     repo: { name: input.git.name, root: input.git.root, branch: input.git.branch, commit: input.git.commit, is_git_repo: input.git.isGitRepo, working_tree_clean: input.git.workingTreeClean },
     changed_files: input.git.changedFiles,
     recent_commits: input.git.recentCommits,
@@ -27,6 +27,7 @@ export function createRunRecord(input: { runId: string; createdAt: string; git: 
     risk_flags: riskFlags,
     readiness: determineReadiness(riskFlags, input.results),
     quality_review: toQualityReviewRecord(qualityReview),
+    project_profile: input.projectProfile ?? { enabled: true, loaded: false, path: ".relaypoint/project_profile.json", warnings: ["No project profile found. Run `relaypoint init` to create one."] },
     comparison: input.comparison ?? { enabled: true, available: false, reason: "No previous Relaypoint run was found." },
     outputs: { handoff: "HANDOFF.md", qa_report: "QA_REPORT.md", agent_handoff: "AGENT_HANDOFF.md", quality_review: "QUALITY_REVIEW.md", run_comparison: "RUN_COMPARISON.md" },
   };

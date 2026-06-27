@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { QualitySeverity, Readiness, ReadinessMovement, RunComparison, RunRecord, ValidationResult } from "./types.js";
+import { compareRunIds } from "./runId.js";
 
 export type ComparableRunRecord = Pick<RunRecord, "run_id" | "created_at" | "readiness" | "risk_flags" | "changed_files" | "validation" | "quality_review">;
 
@@ -110,7 +111,7 @@ export async function findPreviousRun(repoRoot: string, excludeRunId?: string): 
   let entries: string[];
   try { entries = await readdir(runsRoot); }
   catch { return null; }
-  for (const entry of entries.sort((a, b) => b.localeCompare(a))) {
+  for (const entry of entries.sort((a, b) => compareRunIds(b, a))) {
     if (entry === excludeRunId) continue;
     try {
       const parsed: unknown = JSON.parse(await readFile(path.join(runsRoot, entry, "RUN_RECORD.json"), "utf8"));

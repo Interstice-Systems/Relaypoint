@@ -8,6 +8,7 @@ export interface CliOptions {
 export const USAGE = `Relaypoint — clean handoffs for AI-built code
 
 Usage:
+  relaypoint init
   relaypoint handoff [--run <package-script>]... [--no-compare]
   relaypoint --help
 
@@ -16,12 +17,18 @@ Options:
   --no-compare  Do not compare this run with the previous Relaypoint run.
   -h, --help    Show this help.
 
+init creates .relaypoint/project_profile.json and refuses to overwrite an existing profile.
+handoff uses .relaypoint/project_profile.json when present.
 Discovered validation commands are never run unless explicitly requested.
 Output is written locally under .relaypoint/, including RUN_COMPARISON.md.`;
 
 export function parseArgs(args: string[]): CliOptions {
   const [command, ...rest] = args;
   if (!command || command === "--help" || command === "-h") return { command, run: [], compare: true, help: true };
+  if (command === "init") {
+    if (rest.length) throw new Error(`Unknown argument: ${rest[0]}`);
+    return { command, run: [], compare: true, help: false };
+  }
   const run: string[] = [];
   let compare = true;
   let help = false;

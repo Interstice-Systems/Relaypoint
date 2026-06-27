@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { createRunRecord } from "../src/runRecord.js";
 import type { GitState } from "../src/git.js";
@@ -10,9 +11,16 @@ export const mockGit: GitState = {
 export const mockProject = { type: "node" as const, package_manager: "npm" as const, name: "example", scripts: { test: "vitest" }, validation_suggestions: [] };
 
 describe("run record", () => {
-  it("has the stable v0.2 schema and output references", () => {
+  it("keeps the package milestone separate from the run record schema", async () => {
+    const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+    const record = createRunRecord({ runId: "fixed", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [] });
+    expect(packageJson.version).toBe("0.4.0");
+    expect(record.schema_version).toBe("0.3.0");
+  });
+
+  it("has the stable v0.3 schema and output references", () => {
     const record = createRunRecord({ runId: "2026-06-21T00-00-00Z", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [] });
-    expect(record).toMatchObject({ schema_version: "0.2.0", tool: "relaypoint", repo: { name: "example", is_git_repo: true }, validation: { commands_discovered: ["npm run test"] }, quality_review: { enabled: true, mode: "heuristic", finding_count: 0 }, comparison: { enabled: true, available: false }, outputs: { agent_handoff: "AGENT_HANDOFF.md", quality_review: "QUALITY_REVIEW.md", run_comparison: "RUN_COMPARISON.md" } });
+    expect(record).toMatchObject({ schema_version: "0.3.0", tool: "relaypoint", repo: { name: "example", is_git_repo: true }, validation: { commands_discovered: ["npm run test"] }, quality_review: { enabled: true, mode: "heuristic", finding_count: 0 }, project_profile: { enabled: true, loaded: false }, comparison: { enabled: true, available: false }, outputs: { agent_handoff: "AGENT_HANDOFF.md", quality_review: "QUALITY_REVIEW.md", run_comparison: "RUN_COMPARISON.md" } });
     expect(record.outputs).not.toHaveProperty("next_agent_prompt");
   });
 

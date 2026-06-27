@@ -18,6 +18,7 @@ describe("run comparison handoff integration", () => {
     const first = await createHandoff({ cwd: root, now: new Date("2026-06-21T10:00:00.000Z") });
     expect(first.record.comparison).toMatchObject({ enabled: true, available: false, reason: "No previous Relaypoint run was found." });
     const second = await createHandoff({ cwd: root, now: new Date("2026-06-21T10:01:00.000Z") });
+    const secondRecordBeforeCollision = await readFile(path.join(second.runDir, "RUN_RECORD.json"), "utf8");
     expect(second.record.comparison).toMatchObject({ available: true, previous_run_id: first.record.run_id });
     expect(second.record.comparison.previous_run_id).not.toBe(second.record.run_id);
     expect(await readFile(path.join(root, ".relaypoint", "latest", "RUN_COMPARISON.md"), "utf8")).toContain(first.record.run_id);
@@ -26,8 +27,16 @@ describe("run comparison handoff integration", () => {
     expect(latest.comparison.available).toBe(true);
 
     const sameId = await createHandoff({ cwd: root, now: new Date("2026-06-21T10:01:00.000Z") });
-    expect(sameId.record.comparison.previous_run_id).toBe(first.record.run_id);
+    expect(sameId.record.run_id).toBe(`${second.record.run_id}-001`);
+    expect(sameId.record.comparison.previous_run_id).toBe(second.record.run_id);
     expect(sameId.record.comparison.previous_run_id).not.toBe(sameId.record.run_id);
+    expect(await readFile(path.join(second.runDir, "RUN_RECORD.json"), "utf8")).toBe(secondRecordBeforeCollision);
+    const collisionRecord = JSON.parse(await readFile(path.join(sameId.runDir, "RUN_RECORD.json"), "utf8"));
+    const collisionLatest = JSON.parse(await readFile(path.join(root, ".relaypoint", "latest", "RUN_RECORD.json"), "utf8"));
+    expect(collisionRecord.run_id).toBe(sameId.record.run_id);
+    expect(collisionRecord.created_at).toBe("2026-06-21T10:01:00.000Z");
+    expect(collisionLatest.run_id).toBe(sameId.record.run_id);
+    expect(await readFile(path.join(root, ".relaypoint", "latest", "HANDOFF.md"), "utf8")).toContain(`Run ID: ${sameId.record.run_id}`);
 
     const disabled = await createHandoff({ cwd: root, compare: false, now: new Date("2026-06-21T10:02:00.000Z") });
     expect(disabled.record.comparison).toEqual({ enabled: false, available: false, reason: "Comparison disabled by --no-compare." });

@@ -9,6 +9,13 @@ describe("CLI arguments", () => {
     expect(USAGE).toContain("never run unless explicitly requested");
     expect(USAGE).toContain(".relaypoint/");
     expect(USAGE).toContain("RUN_COMPARISON.md");
+    expect(USAGE).toContain("relaypoint init");
+    expect(USAGE).toContain("project_profile.json");
+  });
+
+  it("parses init without overwrite options", () => {
+    expect(parseArgs(["init"])).toEqual({ command: "init", run: [], compare: true, help: false });
+    expect(() => parseArgs(["init", "--force"])).toThrow("Unknown argument: --force");
   });
 
   it("parses repeated validation requests", () => {

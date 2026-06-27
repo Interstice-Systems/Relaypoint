@@ -7,10 +7,26 @@ import { mockGit, mockProject } from "./runRecord.test.js";
 const record = createRunRecord({ runId: "2026-06-21T00-00-00Z", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [] });
 
 describe("Markdown rendering", () => {
+  it("includes the final run ID and creation timestamp in every report", () => {
+    const reports = [
+      renderHandoff(record),
+      renderQaReport(record),
+      renderAgentHandoff(record),
+      renderQualityReview(record),
+      renderRunComparison(record),
+    ];
+    for (const report of reports) {
+      expect(report).toContain(`Run ID: ${record.run_id}`);
+      expect(report).toContain(`Created at: ${record.created_at}`);
+    }
+  });
+
   it("renders key handoff and QA sections", () => {
     expect(renderHandoff(record)).toContain("## Review Focus");
+    expect(renderHandoff(record)).toContain("No project profile found");
     expect(renderHandoff(record)).not.toContain("## Suggested Review Focus");
     expect(renderQaReport(record)).toContain("## Validation Commands Run");
+    expect(renderQaReport(record)).toContain("### Profile warnings");
     expect(renderQaReport(record)).toContain("## Evidence Gaps");
   });
 
