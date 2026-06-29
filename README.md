@@ -2,13 +2,22 @@
 
 Deterministic evidence infrastructure for AI-assisted software engineering.
 
-Relaypoint is a local-first CLI that records what changed, what was validated, what failed, and what may deserve review after an AI-assisted coding session. Its output gives a developer or future agent durable evidence without requiring an AI API, external service, account, or network connection.
+Relaypoint is a local-first CLI that records what changed, what was validated,
+what failed, and what may deserve review after an AI-assisted coding session.
+Its output gives a developer or future agent durable evidence without requiring
+an AI API, external service, account, or network connection.
 
 ## Why Relaypoint Exists
 
-AI-assisted changes often outlive the chat that produced them. Relaypoint turns local repository and process data into reviewable evidence so the next person can understand the state of the work without relying on conversational memory.
+AI-assisted changes often outlive the chat that produced them. Relaypoint turns
+local repository and process data into reviewable evidence so the next person
+can understand the state of the work without relying on conversational memory.
 
 Relaypoint is deliberately deterministic and evidence-focused. The same stored inputs produce the same review signals.
+
+Relaypoint v0.99 is a release-candidate verification milestone. It exercises
+and packages the existing tool without adding a new analysis engine or hosted
+capability.
 
 ## What Relaypoint Does
 
@@ -22,7 +31,10 @@ Relaypoint is deliberately deterministic and evidence-focused. The same stored i
 
 ## What Relaypoint Does Not Do
 
-Relaypoint does not call LLMs, use external APIs, require a hosted service, or send repository data over the network. It does not decide what should be built next, replace human review, infer the original task, rewrite code, or claim that code is correct.
+Relaypoint does not call LLMs, use external APIs, require a hosted service, or
+send repository data over the network. It does not decide what should be built
+next, replace human review, infer the original task, rewrite code, or claim that
+code is correct.
 
 ## Installation
 
@@ -35,9 +47,16 @@ npm link
 relaypoint --help
 ```
 
-`npm link` exposes the built `relaypoint` command through the package `bin` entry. Run `npm run build` again after source changes. Relaypoint is not currently documented as an npm registry install because it has not been published.
+`npm link` exposes the built `relaypoint` command through the package `bin`
+entry. Run `npm run build` again after source changes. Relaypoint is not
+currently documented as an npm registry install because it has not been
+published.
 
 `dist/` is generated and Git-ignored. Run `npm run build` before `npm pack` or any local install test so the compiled CLI is included.
+
+Release packages also include the changelog, contributor guide, architecture,
+design, schema, release, dogfood, v1 criteria, and configuration-example
+documentation.
 
 For development without linking:
 
@@ -78,7 +97,12 @@ relaypoint --help
 relaypoint --version
 ```
 
-`--run` may be repeated. It accepts a `package.json` script name, not an arbitrary shell command. A missing requested script is recorded as skipped. By default, `handoff` compares the new run with the most recent valid run; `--no-compare` disables that comparison. History shows 10 timeline rows by default, and `--limit` changes the displayed row count without changing aggregate totals.
+`--run` may be repeated. It accepts a `package.json` script name, not an
+arbitrary shell command. A missing requested script is recorded as skipped. By
+default, `handoff` compares the new run with the most recent valid run;
+`--no-compare` disables that comparison. History shows 10 timeline rows by
+default, and `--limit` changes the displayed row count without changing
+aggregate totals.
 
 ## Generated Reports
 
@@ -131,7 +155,10 @@ Quality findings and risk flags are review targets, not proof of defects. False 
 }
 ```
 
-Paths use repository-relative prefix matching, not globs. Invalid paths are ignored with warnings. `.relaypoint/**` is always excluded from changed-file evidence. Preferred validation scripts are recorded but only run when explicitly passed with `--run`.
+Paths use repository-relative prefix matching, not globs. Invalid paths are
+ignored with warnings. `.relaypoint/**` is always excluded from changed-file
+evidence. Preferred validation scripts are recorded but only run when
+explicitly passed with `--run`.
 
 A missing profile preserves normal behavior. A malformed or version-mismatched profile produces warnings and safe defaults.
 
@@ -154,15 +181,23 @@ A missing profile preserves normal behavior. A malformed or version-mismatched p
 }
 ```
 
-Supported triggers cover validation failures or absence, source changes without tests, critical paths without validation, lockfile/config changes, quality signals, large changesets, and preferred validation not run. Severities are `blocking`, `warning`, and `info`.
+Supported triggers cover validation failures or absence, source changes without
+tests, critical paths without validation, lockfile/config changes, quality
+signals, large changesets, and preferred validation not run. Severities are
+`blocking`, `warning`, and `info`.
 
-Rules evaluate evidence already captured by Relaypoint. They cannot execute commands, import remote packs, run arbitrary expressions, or prove correctness. Malformed rule files fall back to built-in defaults with warnings.
+Rules evaluate evidence already captured by Relaypoint. They cannot execute
+commands, import remote packs, run arbitrary expressions, or prove correctness.
+Malformed rule files fall back to built-in defaults with warnings.
 
 ## Status And History
 
 `relaypoint status` reads `.relaypoint/latest/RUN_RECORD.json` and prints the latest readiness, validation, policy, quality, comparison, and report evidence.
 
-`relaypoint history` reads `.relaypoint/runs/*/RUN_RECORD.json` and prints a timeline plus aggregate readiness and validation trends. Malformed records are skipped with bounded warnings; missing older fields remain unknown rather than being inferred.
+`relaypoint history` reads `.relaypoint/runs/*/RUN_RECORD.json` and prints a
+timeline plus aggregate readiness and validation trends. Malformed records are
+skipped with bounded warnings; missing older fields remain unknown rather than
+being inferred.
 
 Both commands are read-only. They do not create runs, rerun Git inspection, execute validation, or modify evidence.
 
@@ -188,26 +223,57 @@ Evidence collection
 relaypoint status / relaypoint history
 ```
 
-A practical review loop is:
-
-```bash
-relaypoint init
-relaypoint handoff --run test --run build
-relaypoint status
-relaypoint history --limit 5
-```
+A practical review loop is the Quick Start sequence above. Use
+`relaypoint history --limit 5` when only the five newest timeline rows are
+useful.
 
 Review the reports and underlying changes before accepting the work. Relaypoint preserves evidence; human judgment remains the decision boundary.
 
 ## Architecture
 
-Relaypoint is a TypeScript ESM CLI. It inspects local Git and project files, optionally executes named npm scripts, builds typed evidence, renders Markdown and JSON, and writes atomically reserved run directories. No runtime dependencies or network services are required.
+Relaypoint is a TypeScript ESM CLI. It inspects local Git and project files,
+optionally executes named npm scripts, builds typed evidence, renders Markdown
+and JSON, and writes atomically reserved run directories. No runtime
+dependencies or network services are required.
 
-Git state is captured before output is written. Run IDs use Windows-safe timestamps with deterministic numeric suffixes for collisions. `latest/` contains copies, not symlinks, and has best-effort last-writer behavior during concurrent runs; `runs/` remains the durable evidence source.
+Git state is captured before output is written. Run IDs use Windows-safe
+timestamps with deterministic numeric suffixes for collisions. `latest/`
+contains copies, not symlinks, and has best-effort last-writer behavior during
+concurrent runs; `runs/` remains the durable evidence source.
+
+The implementation separates evidence collection, evidence interpretation, and
+evidence presentation. `status` reads only the latest stored record; `history`
+reads durable stored records. See
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the component and data-flow
+boundaries.
+
+## Documentation
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — collection,
+  interpretation, presentation, status, and history.
+- [`docs/DESIGN_PRINCIPLES.md`](docs/DESIGN_PRINCIPLES.md) — the product and
+  engineering constraints behind Relaypoint.
+- [`docs/RUN_RECORD_SCHEMA.md`](docs/RUN_RECORD_SCHEMA.md) — every currently
+  emitted JSON field and its compatibility contract.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — development, testing, documentation,
+  review, and commit expectations.
+- [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) — local verification
+  through publication and announcement.
+- [`docs/RELEASE_CANDIDATE_TEST_PLAN.md`](docs/RELEASE_CANDIDATE_TEST_PLAN.md) —
+  automated v0.99 evidence and remaining manual checks.
+- [`V1_RELEASE_CRITERIA.md`](V1_RELEASE_CRITERIA.md) — the concise v1.0
+  readiness gate.
+- [`docs/DOGFOOD_NOTES.md`](docs/DOGFOOD_NOTES.md) — the living observation
+  format for real usage.
+- [`CHANGELOG.md`](CHANGELOG.md) — release history.
 
 ## Local Files
 
-Relaypoint writes generated evidence only under `.relaypoint/`. This repository ignores that directory. Relaypoint does not modify another project's `.gitignore`; projects should add `.relaypoint/` when evidence should remain local, or intentionally commit selected artifacts as part of their own workflow.
+Relaypoint writes generated evidence only under `.relaypoint/`. This repository
+ignores that directory. Relaypoint does not modify another project's
+`.gitignore`; projects should add `.relaypoint/` when evidence should remain
+local, or intentionally commit selected artifacts as part of their own
+workflow.
 
 Lightweight configuration examples are available in [`examples/README.md`](examples/README.md).
 
@@ -223,7 +289,18 @@ Lightweight configuration examples are available in [`examples/README.md`](examp
 
 ## Roadmap
 
-Future work may improve fixtures, Git edge-case handling, deterministic project detectors, schema migration policy, and carefully scoped shareable rules. Export bundles, hosted services, and autonomous decision-making are outside the v0.8 distribution milestone.
+v0.99 is the release-candidate self-test pass for the completed v1.0 free/core
+feature set. It concentrates on failure behavior, compatibility, documentation,
+packaging, installation, and dogfood verification.
+
+Before v1.0, work should concentrate on contract stability and operational
+confidence. The v1.0 bar is a stable documented CLI and run-record contract, not
+a larger feature set. Remaining release gates are tracked in
+[`V1_RELEASE_CRITERIA.md`](V1_RELEASE_CRITERIA.md).
+
+AI integrations, GitHub integrations, cloud features, web UI, dashboards,
+export bundles, premium functionality, and new analysis engines are not part of
+this roadmap.
 
 ## License
 

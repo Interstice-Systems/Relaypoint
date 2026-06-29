@@ -12,10 +12,14 @@ describe("run comparison handoff integration", () => {
   it("selects the previous run before writing, copies output to latest, and supports disabling", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "relaypoint-comparison-"));
     roots.push(root);
+    await expect(createHandoff({ cwd: root })).rejects.toThrow(`Not a Git repository: ${root}`);
     execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
     await writeFile(path.join(root, "package.json"), '{"name":"fixture","scripts":{"test":"node --test"}}\n');
 
     const first = await createHandoff({ cwd: root, now: new Date("2026-06-21T10:00:00.000Z") });
+    expect(first.record.repo.branch).toBeTruthy();
+    expect(first.record.repo.commit).toBeNull();
+    expect(first.record.recent_commits).toEqual([]);
     expect(first.record.comparison).toMatchObject({ enabled: true, available: false, reason: "No previous Relaypoint run was found." });
     const second = await createHandoff({ cwd: root, now: new Date("2026-06-21T10:01:00.000Z") });
     const secondRecordBeforeCollision = await readFile(path.join(second.runDir, "RUN_RECORD.json"), "utf8");

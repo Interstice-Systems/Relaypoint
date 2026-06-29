@@ -31,6 +31,7 @@ describe("project profile handoff integration", () => {
     }), "utf8");
 
     const { record, runDir } = await createHandoff({ cwd: root, now: new Date("2026-06-21T12:00:00.000Z"), compare: false });
+    expect(record.repo).toMatchObject({ commit: expect.any(String), working_tree_clean: false });
     expect(record.changed_files.map((file) => file.path)).toEqual(["src/index.js"]);
     expect(record.project_profile).toMatchObject({ loaded: true, critical_paths_matched: ["src/index.js"], ignored_paths_applied: ["scratch/debug.js"], preferred_validation: ["npm run build", "npm run test"] });
     expect(record.validation.results).toEqual([]);

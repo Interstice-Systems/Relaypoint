@@ -156,6 +156,23 @@ describe("project status", () => {
     expect(output).toContain("HANDOFF.md");
   });
 
+  it("reads recognized fields from an unknown newer schema without crashing", async () => {
+    const root = await temporaryRoot();
+    await writeLatest(root, {
+      schema_version: "99.0.0",
+      run_id: "future-run",
+      repo: { name: "future-project" },
+      readiness: "READY_FOR_REVIEW",
+      validation: { results: [] },
+      future_evidence: { ignored: true },
+    });
+
+    const output = await readLatestStatus(root);
+    expect(output).toContain("Name: future-project");
+    expect(output).toContain("Run ID: future-run");
+    expect(output).toContain("Overall: READY_FOR_REVIEW");
+  });
+
   it("reports malformed latest JSON with a helpful error", async () => {
     const root = await temporaryRoot();
     const latest = path.join(root, ".relaypoint", "latest");

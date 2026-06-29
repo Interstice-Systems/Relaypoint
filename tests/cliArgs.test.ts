@@ -7,11 +7,14 @@ describe("CLI arguments", () => {
     expect(parseArgs(["--help"])).toMatchObject({ help: true, run: [] });
     expect(parseArgs(["-h"])).toMatchObject({ help: true, run: [] });
     expect(parseArgs(["handoff", "--help"])).toMatchObject({ command: "handoff", help: true });
-    const usage = renderUsage("0.8.0");
-    expect(usage).toContain("Relaypoint 0.8.0");
+    const usage = renderUsage("0.99.0");
+    expect(usage).toContain("Relaypoint 0.99.0");
     expect(usage).toContain("relaypoint <command> [options]");
     expect(usage).toContain("handoff      Capture evidence");
+    expect(usage).toContain("init         Create local Relaypoint");
+    expect(usage).toContain("status       Show a read-only summary");
     expect(usage).toContain("history      Show a read-only timeline");
+    expect(usage).toContain("version      Show Relaypoint version");
     expect(usage).toContain("--version        Show version");
     expect(usage.split("\n").length).toBeLessThan(30);
   });
@@ -45,7 +48,7 @@ describe("CLI arguments", () => {
   it("parses repeated validation requests", () => {
     expect(parseArgs(["handoff", "--run", "test", "--run", "build"])).toEqual({ command: "handoff", run: ["test", "build"], compare: true, help: false, version: false });
     expect(parseArgs(["handoff", "--no-compare"])).toMatchObject({ compare: false });
-    expect(renderUsage("0.8.0")).toContain("--no-compare");
+    expect(renderUsage("0.99.0")).toContain("--no-compare");
   });
 
   it("rejects unknown commands and invalid options as user errors", () => {

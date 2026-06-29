@@ -211,4 +211,22 @@ describe("project history", () => {
     expect(await readFile(recordPath, "utf8")).toBe(recordBefore);
     expect(await readFile(latestPath, "utf8")).toBe("unchanged");
   });
+
+  it("reads recognized fields from unknown newer schemas", async () => {
+    const root = await temporaryRoot();
+    await writeRun(root, "future-run", record({
+      schema_version: "99.0.0",
+      run_id: "future-run",
+      future_evidence: { ignored: true },
+    }));
+
+    const result = await readHistory(root);
+
+    expect(result.warnings).toEqual([]);
+    expect(result.summary?.latest).toMatchObject({
+      runId: "future-run",
+      readiness: "NEEDS_VALIDATION",
+      policyStatus: "WARN",
+    });
+  });
 });

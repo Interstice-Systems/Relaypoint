@@ -1,6 +1,6 @@
 {
   "name": "relaypoint",
-  "version": "0.8.0",
+  "version": "0.99.0",
   "description": "Deterministic evidence infrastructure for AI-assisted software engineering.",
   "type": "module",
   "bin": {
@@ -10,6 +10,10 @@
     "dist",
     "README.md",
     "LICENSE",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "V1_RELEASE_CRITERIA.md",
+    "docs",
     "examples"
   ],
   "scripts": {

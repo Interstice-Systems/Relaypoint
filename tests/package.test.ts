@@ -9,14 +9,23 @@ describe("package distribution metadata", () => {
     const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
     expect(packageJson).toMatchObject({
       name: "relaypoint",
-      version: "0.8.0",
+      version: "0.99.0",
       description: "Deterministic evidence infrastructure for AI-assisted software engineering.",
       type: "module",
       bin: { relaypoint: "./dist/cli.js" },
       engines: { node: ">=20" },
       license: "MIT",
     });
-    expect(packageJson.files).toEqual(["dist", "README.md", "LICENSE", "examples"]);
+    expect(packageJson.files).toEqual([
+      "dist",
+      "README.md",
+      "LICENSE",
+      "CHANGELOG.md",
+      "CONTRIBUTING.md",
+      "V1_RELEASE_CRITERIA.md",
+      "docs",
+      "examples",
+    ]);
     expect(packageJson.files).not.toContain("src");
     expect(packageJson.files).not.toContain("tests");
     expect(packageJson.scripts["pack:check"]).toBe("npm pack --dry-run");
@@ -36,5 +45,18 @@ describe("package distribution metadata", () => {
     const snippets = [...examples.matchAll(/```json\n([\s\S]*?)\n```/g)].map((match) => match[1]);
     expect(snippets).toHaveLength(2);
     for (const snippet of snippets) expect(() => JSON.parse(snippet)).not.toThrow();
+  });
+
+  it("ships release documentation without generated local evidence", async () => {
+    const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+    expect(packageJson.files).toContain("V1_RELEASE_CRITERIA.md");
+    expect(packageJson.files).toContain("docs");
+    expect(packageJson.files).not.toContain(".relaypoint");
+
+    const criteria = await readFile(path.join(root, "V1_RELEASE_CRITERIA.md"), "utf8");
+    const plan = await readFile(path.join(root, "docs", "RELEASE_CANDIDATE_TEST_PLAN.md"), "utf8");
+    expect(criteria).toContain("# V1.0 Release Criteria");
+    expect(criteria).toContain("- Create the v1.0.0 tag.");
+    expect(plan).toContain("# Release Candidate Test Plan");
   });
 });
