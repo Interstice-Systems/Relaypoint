@@ -62,7 +62,7 @@ relaypoint init
 npm run dev -- init
 ```
 
-This creates `.relaypoint/project_profile.json` and refuses to overwrite an existing file. A missing profile leaves normal handoff behavior intact. A malformed or version-mismatched profile produces report and run-record warnings while Relaypoint continues with safe defaults.
+This creates `.relaypoint/project_profile.json` and `.relaypoint/rules.json` when they are missing. Existing files are reported and left unchanged. A missing profile leaves normal handoff behavior intact. A malformed or version-mismatched profile produces report and run-record warnings while Relaypoint continues with safe defaults.
 
 ```json
 {
@@ -91,6 +91,67 @@ Positive `max_file_lines`, `max_function_lines`, and `max_line_length` values ov
 
 Project Profile customizes evidence and review context. It does not create an autonomous agent plan, decide the next task, interpret the semantic meaning of changes, or establish that code is correct.
 
+## Rule Packs and Policy Checks
+
+Rule Packs answer: “Which local review standards were triggered by this run?” Relaypoint evaluates a fixed set of deterministic checks against evidence it already captured. Rules do not run commands, rewrite code, invoke AI, create plans, or prove that code is correct.
+
+`relaypoint init` creates this starter `.relaypoint/rules.json` when the file is missing:
+
+```json
+{
+  "schema_version": "0.5.0",
+  "rules": [
+    {
+      "id": "source_requires_tests",
+      "enabled": true,
+      "severity": "warning",
+      "description": "Source changes should usually include test changes or validation evidence.",
+      "when": "source_changed_without_tests"
+    },
+    {
+      "id": "validation_failures_block_review",
+      "enabled": true,
+      "severity": "blocking",
+      "description": "Validation failures should be resolved or explicitly reviewed before completion.",
+      "when": "validation_failed"
+    },
+    {
+      "id": "critical_paths_require_validation",
+      "enabled": true,
+      "severity": "warning",
+      "description": "Critical path changes should be validated before review.",
+      "when": "critical_path_changed_without_validation"
+    },
+    {
+      "id": "lockfile_requires_review",
+      "enabled": true,
+      "severity": "info",
+      "description": "Lockfile changes should be reviewed for dependency drift.",
+      "when": "lockfile_changed"
+    }
+  ]
+}
+```
+
+The same four rules are built in and used when no rules file exists. Supported `when` values are:
+
+- `source_changed_without_tests`
+- `validation_failed`
+- `validation_not_run`
+- `critical_path_changed_without_validation`
+- `lockfile_changed`
+- `config_changed`
+- `high_quality_findings`
+- `todo_markers_found`
+- `large_changeset`
+- `preferred_validation_not_run`
+
+Severities are `blocking`, `warning`, and `info`. Policy status is `BLOCKED` when a blocking rule triggers, `WARN` when only warning or informational rules trigger, `PASS` when evaluated rules do not trigger, and `UNKNOWN` when no valid enabled rules can be evaluated. A blocking finding moves readiness to `NEEDS_VALIDATION` unless validation failures already make readiness `HAS_FAILURES`.
+
+Validation records command outcomes. Policy evaluates local review requirements. These are deliberately separate: passing policy does not imply validation passed, and neither policy nor validation proves correctness.
+
+Malformed whole rule files produce warnings and use built-in defaults. Invalid, duplicate, unsupported, and disabled entries are warned and skipped without aborting the handoff. The v0.5 format accepts only the fixed triggers above; it has no expressions, custom executable checks, imports, or remote rule packs.
+
 ## Local output
 
 Each invocation writes files inside the inspected repository:
@@ -103,6 +164,7 @@ Each invocation writes files inside the inspected repository:
     AGENT_HANDOFF.md
     QUALITY_REVIEW.md
     RUN_COMPARISON.md
+    POLICY_REPORT.md
     RUN_RECORD.json
   latest/
     HANDOFF.md
@@ -110,6 +172,7 @@ Each invocation writes files inside the inspected repository:
     AGENT_HANDOFF.md
     QUALITY_REVIEW.md
     RUN_COMPARISON.md
+    POLICY_REPORT.md
     RUN_RECORD.json
 ```
 
@@ -127,9 +190,11 @@ Quality Review uses no AI, LLM calls, external APIs, or network access. It never
 
 Run comparison uses recorded evidence only. It cannot infer intent, semantic correctness, whether a changed file is complete, or what work should happen next. Validation comparisons reflect stored command statuses, and quality findings match only on the deterministic key `file + category + message`; they are not semantic matches.
 
+`POLICY_REPORT.md` records loaded, evaluated, and triggered rule counts; policy status; findings grouped by severity; supporting evidence; review focus; and rule warnings. `RUN_RECORD.json` stores the same policy evidence in a `policy` object and references `POLICY_REPORT.md` from `outputs.policy_report`.
+
 ## v0 scope
 
-Relaypoint v0.4 supports Git inspection, optional local project profiles, collision-safe run IDs, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, comparison with the previous recorded run, Markdown reports, and a schema-versioned JSON run record. The JSON shape is unchanged, so new v0.4 run records continue to use schema version `0.3.0`.
+Relaypoint v0.5 supports Git inspection, optional local project profiles, deterministic local policy checks, collision-safe run IDs, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, comparison with the previous recorded run, Markdown reports, and a schema-versioned JSON run record. Policy additions change the run-record schema version to `0.5.0`.
 
 It has no external AI API, network requirement, API key, hosted service, database, authentication, dashboard, spend tracking, deep code review, autonomous agent, marketplace, or knowledge-base system. Python validation is suggested when detectable but is not executed in v0.
 
@@ -137,6 +202,7 @@ It has no external AI API, network requirement, API key, hosted service, databas
 
 - Classification and risk flags are path-based heuristics.
 - Project Profile path matching uses repository-relative prefixes rather than globs, and invalid fields fall back independently to defaults.
+- Rule Packs use a fixed trigger list rather than expressions, custom scripts, imported packs, or semantic analysis.
 - Quality findings use intentionally shallow line- and pattern-based heuristics; they may produce false positives or miss semantic concerns.
 - Run comparison depends on available, readable prior run records and uses exact command, path, risk-flag, and finding keys.
 - Relaypoint records command outcomes but cannot prove semantic correctness.
@@ -146,4 +212,4 @@ It has no external AI API, network requirement, API key, hosted service, databas
 
 ## Roadmap
 
-Near-term work can improve fixture coverage, Git edge-case handling, additional deterministic project detectors, and a versioned schema migration policy. These additions should preserve the local-first, evidence-only boundary.
+Near-term work can improve fixture coverage, Git edge-case handling, additional deterministic project detectors, a versioned schema migration policy, and carefully scoped custom rule expressions or shareable rule packs. These additions should preserve the local-first, evidence-only boundary.

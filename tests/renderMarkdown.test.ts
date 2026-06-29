@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderAgentHandoff, renderHandoff, renderQaReport, renderQualityReview, renderRunComparison } from "../src/renderMarkdown.js";
+import { renderAgentHandoff, renderHandoff, renderPolicyReport, renderQaReport, renderQualityReview, renderRunComparison } from "../src/renderMarkdown.js";
 import { createRunRecord } from "../src/runRecord.js";
 import { compareRuns } from "../src/runComparison.js";
 import { mockGit, mockProject } from "./runRecord.test.js";
@@ -14,11 +14,23 @@ describe("Markdown rendering", () => {
       renderAgentHandoff(record),
       renderQualityReview(record),
       renderRunComparison(record),
+      renderPolicyReport(record),
     ];
     for (const report of reports) {
       expect(report).toContain(`Run ID: ${record.run_id}`);
       expect(report).toContain(`Created at: ${record.created_at}`);
     }
+  });
+
+  it("renders policy evidence and separates it from correctness and validation", () => {
+    const output = renderPolicyReport(record);
+    expect(output).toContain("# Policy Report");
+    expect(output).toContain("## Triggered Rules");
+    expect(output).toContain("## Rule Warnings");
+    expect(output).toContain("It does not prove correctness.");
+    expect(renderHandoff(record)).toContain("## Policy");
+    expect(renderQaReport(record)).toContain("Validation results and policy findings are separate evidence.");
+    expect(renderAgentHandoff(record)).toContain("## Policy Review Context");
   });
 
   it("renders key handoff and QA sections", () => {

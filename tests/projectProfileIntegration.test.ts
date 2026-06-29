@@ -39,6 +39,7 @@ describe("project profile handoff integration", () => {
     const qa = await readFile(path.join(runDir, "QA_REPORT.md"), "utf8");
     const handoff = await readFile(path.join(runDir, "HANDOFF.md"), "utf8");
     const quality = await readFile(path.join(runDir, "QUALITY_REVIEW.md"), "utf8");
+    const policy = await readFile(path.join(runDir, "POLICY_REPORT.md"), "utf8");
     expect(agent).toContain("## Project Context");
     expect(agent).toContain("preserve deterministic output");
     expect(agent.toLowerCase()).not.toContain("next agent should build");
@@ -46,5 +47,7 @@ describe("project profile handoff integration", () => {
     expect(qa).toContain("npm run test");
     expect(handoff).toContain("## Project Profile");
     expect(quality).toContain("max line length 120");
+    expect(policy).toContain("critical_paths_require_validation");
+    expect(record.policy).toMatchObject({ loaded: false, using_defaults: true, rules_path: null, status: "WARN" });
   });
 });

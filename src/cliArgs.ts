@@ -17,10 +17,10 @@ Options:
   --no-compare  Do not compare this run with the previous Relaypoint run.
   -h, --help    Show this help.
 
-init creates .relaypoint/project_profile.json and refuses to overwrite an existing profile.
-handoff uses .relaypoint/project_profile.json when present.
+init creates starter project_profile.json and rules.json files when missing, without overwriting either.
+handoff uses .relaypoint/project_profile.json and .relaypoint/rules.json when present.
 Discovered validation commands are never run unless explicitly requested.
-Output is written locally under .relaypoint/, including RUN_COMPARISON.md.`;
+Output is written locally under .relaypoint/, including RUN_COMPARISON.md and POLICY_REPORT.md.`;
 
 export function parseArgs(args: string[]): CliOptions {
   const [command, ...rest] = args;

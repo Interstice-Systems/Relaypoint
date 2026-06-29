@@ -9,8 +9,10 @@ describe("CLI arguments", () => {
     expect(USAGE).toContain("never run unless explicitly requested");
     expect(USAGE).toContain(".relaypoint/");
     expect(USAGE).toContain("RUN_COMPARISON.md");
+    expect(USAGE).toContain("POLICY_REPORT.md");
     expect(USAGE).toContain("relaypoint init");
     expect(USAGE).toContain("project_profile.json");
+    expect(USAGE).toContain("rules.json");
   });
 
   it("parses init without overwrite options", () => {

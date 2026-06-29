@@ -84,6 +84,53 @@ export interface QualityReviewRecord {
   highest_severity: QualitySeverity | null;
   findings: Array<Omit<QualityFinding, "reviewFocus"> & { review_focus: string }>;
 }
+export type PolicySeverity = "blocking" | "warning" | "info";
+export type PolicyStatus = "PASS" | "WARN" | "BLOCKED" | "UNKNOWN";
+export type RuleTrigger =
+  | "source_changed_without_tests"
+  | "validation_failed"
+  | "validation_not_run"
+  | "critical_path_changed_without_validation"
+  | "lockfile_changed"
+  | "config_changed"
+  | "high_quality_findings"
+  | "todo_markers_found"
+  | "large_changeset"
+  | "preferred_validation_not_run";
+export interface PolicyRule {
+  id: string;
+  enabled: boolean;
+  severity: PolicySeverity;
+  description: string;
+  when: RuleTrigger;
+}
+export interface PolicyFinding {
+  ruleId: string;
+  severity: PolicySeverity;
+  description: string;
+  evidence: string;
+  reviewFocus: string;
+}
+export interface LoadedPolicyRules {
+  enabled: true;
+  path: ".relaypoint/rules.json";
+  loaded: boolean;
+  usingDefaults: boolean;
+  rules: PolicyRule[];
+  warnings: string[];
+}
+export interface PolicyRecord {
+  enabled: true;
+  rules_path: ".relaypoint/rules.json" | null;
+  loaded: boolean;
+  using_defaults: boolean;
+  rules_loaded: number;
+  rules_evaluated: number;
+  rules_triggered: number;
+  status: PolicyStatus;
+  findings: Array<Omit<PolicyFinding, "ruleId" | "reviewFocus"> & { rule_id: string; review_focus: string }>;
+  warnings: string[];
+}
 export type ReadinessMovement = "improved" | "regressed" | "unchanged" | "unknown";
 export interface RunComparisonSummary {
   readiness_previous: Readiness;
@@ -119,7 +166,7 @@ export interface RunComparison {
   summary?: RunComparisonSummary;
 }
 export interface RunRecord {
-  schema_version: "0.3.0";
+  schema_version: "0.5.0";
   tool: "relaypoint";
   run_id: string;
   created_at: string;
@@ -140,6 +187,7 @@ export interface RunRecord {
   readiness: Readiness;
   quality_review: QualityReviewRecord;
   project_profile: ProjectProfileRecord;
+  policy: PolicyRecord;
   comparison: RunComparison;
-  outputs: { handoff: "HANDOFF.md"; qa_report: "QA_REPORT.md"; agent_handoff: "AGENT_HANDOFF.md"; quality_review: "QUALITY_REVIEW.md"; run_comparison: "RUN_COMPARISON.md" };
+  outputs: { handoff: "HANDOFF.md"; qa_report: "QA_REPORT.md"; agent_handoff: "AGENT_HANDOFF.md"; quality_review: "QUALITY_REVIEW.md"; run_comparison: "RUN_COMPARISON.md"; policy_report: "POLICY_REPORT.md" };
 }

@@ -44,6 +44,17 @@ function profileSummary(record: RunRecord): string {
   return `## Project Profile\n\n- Loaded: ${profile.loaded ? "yes" : "no"}\n- Project: ${profile.project_name || "not specified"}\n- Critical paths matched: ${critical}\n- Profile warnings: ${profile.warnings.length ? profile.warnings.join("; ") : "none"}\n`;
 }
 
+function policyFindings(record: RunRecord): string {
+  return record.policy.findings.length
+    ? record.policy.findings.map((finding) => `- \`${finding.rule_id}\` (${finding.severity}): ${finding.description}\n  - Evidence: ${finding.evidence}\n  - Review focus: ${finding.review_focus}`).join("\n")
+    : "- No policy findings.";
+}
+
+function policySummary(record: RunRecord): string {
+  const blocking = record.policy.findings.filter((finding) => finding.severity === "blocking").length;
+  return `## Policy\n\n- Status: ${record.policy.status}\n- Triggered rules: ${record.policy.rules_triggered}\n- Blocking findings: ${blocking}\n`;
+}
+
 function renderHandoffBase(record: RunRecord): string {
   const groups = [...new Set(record.changed_files.map((file) => file.category))];
   return `# Relaypoint Handoff\n\n## Current State\n\n- Repository: ${record.repo.name}\n- Created at: ${record.created_at}\n- Branch: ${record.repo.branch ?? "unavailable"}\n- Commit: ${record.repo.commit ?? "unavailable"}\n- Working tree: ${record.repo.working_tree_clean ? "clean" : "dirty"}\n- Project type: ${record.detected_project.type}\n\n${profileSummary(record)}\n## What Changed\n\nRelaypoint detected changes in the following areas:\n\n${list(groups)}\n\nReview the file list below and compare it against the intended task. Relaypoint records evidence; it does not infer intent or correctness.\n\n## Changed Files\n\n${changed(record.changed_files)}\n\n## Recent Commits\n\n${list(record.recent_commits.map((commit) => `\`${commit.hash}\` ${commit.subject} — ${commit.author}, ${commit.date}`), "No recent commits available.")}\n\n## Important Files Touched\n\n${list(record.changed_files.filter((file) => ["source", "test", "config", "lockfile"].includes(file.category)).map((file) => `\`${file.path}\` (${file.category})`), "No important files identified by deterministic classification.")}\n\n## Known Open Questions\n\n- Does the changeset match the intended task?\n- Are unvalidated paths covered by manual review?\n- Are configuration, lockfile, or generated changes intentional?\n\n## Review Focus\n\n${list([...(record.project_profile.review_focus ?? []), ...reviewFocus(record)], "Review the changed files and recorded validation evidence.")}\n`;
@@ -53,7 +64,7 @@ export function renderHandoff(record: RunRecord): string {
   return renderHandoffBase(record).replace(
     `- Repository: ${record.repo.name}`,
     `- Repository: ${record.repo.name}\n- Run ID: ${record.run_id}`,
-  );
+  ).replace("## What Changed", `${policySummary(record)}\n## What Changed`);
 }
 
 function renderQaReportBase(record: RunRecord): string {
@@ -98,7 +109,10 @@ export function renderQaReport(record: RunRecord): string {
       "## Overall Readiness\n\n",
       `## Overall Readiness\n\n- Run ID: ${record.run_id}\n- Created at: ${record.created_at}\n- Readiness: `,
     )
-    .replace("## Validation Commands Discovered", `${context}## Validation Commands Discovered`);
+    .replace(
+      "## Validation Commands Discovered",
+      `## Policy Findings\n\n- Policy status: ${record.policy.status}\n- Validation results and policy findings are separate evidence.\n\n${policyFindings(record)}\n\n${context}## Validation Commands Discovered`,
+    );
 }
 
 export function renderAgentHandoff(record: RunRecord): string {
@@ -111,7 +125,7 @@ export function renderAgentHandoff(record: RunRecord): string {
   const context = `## Project Context\n\n${sections.join("\n\n")}\n\n`;
   return renderAgentHandoffBase(record)
     .replace(`- Repository: ${record.repo.name}`, `- Repository: ${record.repo.name}\n- Run ID: ${record.run_id}`)
-    .replace("## Changed Files", `${context}## Changed Files`);
+    .replace("## Changed Files", `${context}## Policy Review Context\n\n- Policy status: ${record.policy.status}\n\n${policyFindings(record)}\n\n## Changed Files`);
 }
 
 export function renderQualityReview(record: RunRecord): string {
@@ -137,7 +151,7 @@ export function renderRunComparison(record: RunRecord): string {
   const intro = `# Run Comparison\n\n- Run ID: ${record.run_id}\n- Created at: ${record.created_at}\n\nThis report compares the current Relaypoint run with the previous available Relaypoint run.\n\nIt uses recorded evidence only.\nIt matches exact recorded keys deterministically and does not infer semantic equivalence.\nIt does not decide what should be built next or replace human review.`;
   if (!comparison.available || !comparison.summary) {
     const status = comparison.enabled ? "unavailable" : "disabled";
-    return `${intro}\n\n## Summary\n\n- Comparison status: ${status}\n- Current run: ${record.run_id}\n- Reason: ${comparison.reason ?? "Comparison evidence is unavailable."}\n\n## Review Context\n\n- No run comparison evidence was produced.\n`;
+    return `${intro}\n\n## Summary\n\n- Comparison status: ${status}\n- Current run: ${record.run_id}\n- Current policy status: ${record.policy.status}\n- Reason: ${comparison.reason ?? "Comparison evidence is unavailable."}\n\n## Review Context\n\n- No run comparison evidence was produced.\n`;
   }
   const summary = comparison.summary;
   const previousReadiness = summary.readiness_previous;
@@ -150,5 +164,16 @@ export function renderRunComparison(record: RunRecord): string {
   if (summary.quality_finding_count_current < summary.quality_finding_count_previous) context.push("Quality finding count decreased.");
   if (summary.quality_finding_count_current > summary.quality_finding_count_previous) context.push("Quality finding count increased.");
   if (summary.changed_files_persistent.length) context.push("The same files remain changed across runs.");
-  return `${intro}\n\n## Summary\n\n- Comparison status: available\n- Previous run: ${comparison.previous_run_id}\n- Current run: ${record.run_id}\n- Readiness change: ${summary.readiness_change}\n- Risks: ${summary.risk_flags_added.length} added, ${summary.risk_flags_removed.length} removed\n- Validation changes: ${validationChangeCount}\n- Quality findings: ${summary.quality_findings_added} added, ${summary.quality_findings_removed} removed\n- Changed files: ${summary.changed_files_added.length} new, ${summary.changed_files_removed.length} no longer changed, ${summary.changed_files_persistent.length} persistent\n\n## Readiness\n\n- Previous readiness: ${previousReadiness}\n- Current readiness: ${record.readiness}\n- Movement: ${summary.readiness_change}\n\n## Risk Flag Changes\n\n### Added risk flags\n\n${cappedList(summary.risk_flags_added)}\n\n### Removed risk flags\n\n${cappedList(summary.risk_flags_removed)}\n\n### Persistent risk flags\n\n${cappedList(summary.risk_flags_persistent)}\n\n## Changed File Movement\n\n### Newly changed files\n\n${cappedList(summary.changed_files_added.map((file) => `\`${file}\``))}\n\n### No-longer changed files\n\n${cappedList(summary.changed_files_removed.map((file) => `\`${file}\``))}\n\n### Still changed files\n\n${cappedList(summary.changed_files_persistent.map((file) => `\`${file}\``))}\n\n## Validation Changes\n\n### Improved\n\n${cappedList(summary.validation_improved.map((command) => `\`${command}\``))}\n\n### Regressed\n\n${cappedList(summary.validation_regressed.map((command) => `\`${command}\``))}\n\n### Unchanged passing\n\n${cappedList(summary.validation_unchanged_passing.map((command) => `\`${command}\``))}\n\n### Unchanged failing\n\n${cappedList(summary.validation_unchanged_failing.map((command) => `\`${command}\``))}\n\n### Newly run\n\n${cappedList(summary.validation_newly_run.map((command) => `\`${command}\``))}\n\n### No longer run\n\n${cappedList(summary.validation_no_longer_run.map((command) => `\`${command}\``))}\n\n### Skipped\n\n${cappedList(summary.validation_skipped.map((command) => `\`${command}\``))}\n\n## Quality Review Changes\n\n- Previous finding count: ${summary.quality_finding_count_previous}\n- Current finding count: ${summary.quality_finding_count_current}\n- Highest severity: ${summary.quality_highest_severity_previous ?? "none"} → ${summary.quality_highest_severity_current ?? "none"} (${summary.quality_highest_severity_change})\n- Finding count change: ${summary.quality_finding_count_current - summary.quality_finding_count_previous}\n- Added finding count: ${summary.quality_findings_added}\n- Removed finding count: ${summary.quality_findings_removed}\n\n## Review Context\n\n${list(context, "No comparison movement requiring additional context was recorded.")}\n`;
+  return `${intro}\n\n## Summary\n\n- Comparison status: available\n- Previous run: ${comparison.previous_run_id}\n- Current run: ${record.run_id}\n- Current policy status: ${record.policy.status}\n- Readiness change: ${summary.readiness_change}\n- Risks: ${summary.risk_flags_added.length} added, ${summary.risk_flags_removed.length} removed\n- Validation changes: ${validationChangeCount}\n- Quality findings: ${summary.quality_findings_added} added, ${summary.quality_findings_removed} removed\n- Changed files: ${summary.changed_files_added.length} new, ${summary.changed_files_removed.length} no longer changed, ${summary.changed_files_persistent.length} persistent\n\n## Readiness\n\n- Previous readiness: ${previousReadiness}\n- Current readiness: ${record.readiness}\n- Movement: ${summary.readiness_change}\n\n## Risk Flag Changes\n\n### Added risk flags\n\n${cappedList(summary.risk_flags_added)}\n\n### Removed risk flags\n\n${cappedList(summary.risk_flags_removed)}\n\n### Persistent risk flags\n\n${cappedList(summary.risk_flags_persistent)}\n\n## Changed File Movement\n\n### Newly changed files\n\n${cappedList(summary.changed_files_added.map((file) => `\`${file}\``))}\n\n### No-longer changed files\n\n${cappedList(summary.changed_files_removed.map((file) => `\`${file}\``))}\n\n### Still changed files\n\n${cappedList(summary.changed_files_persistent.map((file) => `\`${file}\``))}\n\n## Validation Changes\n\n### Improved\n\n${cappedList(summary.validation_improved.map((command) => `\`${command}\``))}\n\n### Regressed\n\n${cappedList(summary.validation_regressed.map((command) => `\`${command}\``))}\n\n### Unchanged passing\n\n${cappedList(summary.validation_unchanged_passing.map((command) => `\`${command}\``))}\n\n### Unchanged failing\n\n${cappedList(summary.validation_unchanged_failing.map((command) => `\`${command}\``))}\n\n### Newly run\n\n${cappedList(summary.validation_newly_run.map((command) => `\`${command}\``))}\n\n### No longer run\n\n${cappedList(summary.validation_no_longer_run.map((command) => `\`${command}\``))}\n\n### Skipped\n\n${cappedList(summary.validation_skipped.map((command) => `\`${command}\``))}\n\n## Quality Review Changes\n\n- Previous finding count: ${summary.quality_finding_count_previous}\n- Current finding count: ${summary.quality_finding_count_current}\n- Highest severity: ${summary.quality_highest_severity_previous ?? "none"} → ${summary.quality_highest_severity_current ?? "none"} (${summary.quality_highest_severity_change})\n- Finding count change: ${summary.quality_finding_count_current - summary.quality_finding_count_previous}\n- Added finding count: ${summary.quality_findings_added}\n- Removed finding count: ${summary.quality_findings_removed}\n\n## Review Context\n\n${list(context, "No comparison movement requiring additional context was recorded.")}\n`;
+}
+
+export function renderPolicyReport(record: RunRecord): string {
+  const count = (severity: "blocking" | "warning" | "info"): number => record.policy.findings.filter((finding) => finding.severity === severity).length;
+  const group = (severity: "blocking" | "warning" | "info"): string => {
+    const findings = record.policy.findings.filter((finding) => finding.severity === severity);
+    return findings.length
+      ? findings.map((finding) => `#### \`${finding.rule_id}\`\n\n- Severity: ${finding.severity}\n- Description: ${finding.description}\n- Evidence: ${finding.evidence}\n- Review focus: ${finding.review_focus}`).join("\n\n")
+      : "- No triggered rules.";
+  };
+  return `# Policy Report\n\n- Run ID: ${record.run_id}\n- Created at: ${record.created_at}\n\nThis report evaluates local Relaypoint rules against the evidence captured for this run.\n\nIt uses deterministic checks only.\nIt does not prove correctness.\nIt does not replace human review.\nIt does not decide what should be built next.\n\n## Summary\n\n- Rules loaded: ${record.policy.rules_loaded}\n- Rules evaluated: ${record.policy.rules_evaluated}\n- Rules triggered: ${record.policy.rules_triggered}\n- Blocking findings: ${count("blocking")}\n- Warning findings: ${count("warning")}\n- Info findings: ${count("info")}\n- Policy status: ${record.policy.status}\n\n## Triggered Rules\n\n### Blocking\n\n${group("blocking")}\n\n### Warning\n\n${group("warning")}\n\n### Info\n\n${group("info")}\n\n## Rule Warnings\n\n${list(record.policy.warnings)}\n\n## Review Guidance\n\nPolicy findings are evidence-based checks against local standards. They are review signals, not proof of defects or correctness. Validation results remain separate evidence, and human judgment remains authoritative.\n`;
 }
