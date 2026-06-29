@@ -51,3 +51,4 @@ export async function createHandoff(options: { cwd?: string; run?: string[]; now
 
 export * from "./types.js";
 export * from "./status.js";
+export * from "./history.js";

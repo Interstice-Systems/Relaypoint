@@ -29,6 +29,7 @@ cd /path/to/target-repo
 node /home/colt/code/Relaypoint/dist/cli.js handoff
 node /home/colt/code/Relaypoint/dist/cli.js handoff --run test --run build
 node /home/colt/code/Relaypoint/dist/cli.js status
+node /home/colt/code/Relaypoint/dist/cli.js history
 ```
 
 From Relaypoint's own repository, these shorter forms work:
@@ -37,6 +38,7 @@ From Relaypoint's own repository, these shorter forms work:
 npm run dev -- handoff
 npm run dev -- init
 npm run dev -- status
+npm run dev -- history
 npm run relaypoint -- handoff --run test
 npm run dev -- --help
 ```
@@ -47,6 +49,7 @@ After `npm link` (or package installation), the eventual command is:
 relaypoint handoff
 relaypoint init
 relaypoint status
+relaypoint history
 relaypoint handoff --run test --run build
 relaypoint handoff --no-compare
 ```
@@ -205,6 +208,64 @@ Validation
 
 The full command output also shows policy and quality severity counts, comparison movement when available, and report filenames. Missing optional fields in older run records are shown as `unknown` or omitted where appropriate.
 
+## Project History
+
+`relaypoint history` answers: “How has this project changed over time?” It reads prior evidence from `.relaypoint/runs/*/RUN_RECORD.json` and prints a concise plain-text timeline with aggregate readiness, policy, validation, quality, and readiness-movement trends.
+
+History is read-only. It does not create a new run or modify files, and it does not re-run Git inspection, validation, quality review, policy checks, or comparison. Malformed or unreadable run records are skipped with concise warnings; at most 10 individual warnings are printed, followed by the remaining skipped count. Older partial JSON objects remain usable; missing or unrecognized evidence is reported as `unknown` or `unavailable` rather than inferred.
+
+The timeline shows the latest 10 valid runs by default. Aggregate counts cover all valid run records. Use `--limit` to change only the number of displayed timeline rows:
+
+```bash
+npm run dev -- history
+npm run dev -- history --limit 20
+```
+
+If no valid prior runs exist, history reports:
+
+```text
+No Relaypoint runs found. Run `relaypoint handoff` first.
+```
+
+Recommended workflow:
+
+```bash
+npm run dev -- handoff --run test --run build
+npm run dev -- status
+npm run dev -- history
+```
+
+`handoff` captures evidence. `status` summarizes the latest run. `history` summarizes prior runs over time.
+
+Example:
+
+```text
+Relaypoint History
+
+Runs: 12
+Project: Relaypoint
+
+Latest:
+  Run ID: 2026-06-28T19-10-41Z-002
+  Created: 2026-06-28T19:10:41.123Z
+  Readiness: READY_FOR_REVIEW
+  Policy: WARN
+  Validation: PASS
+  Quality Findings: 3
+
+Timeline (latest 10):
+  2026-06-28T19:10:41.123Z  READY_FOR_REVIEW  WARN  validation: PASS  quality: 3  run: 2026-06-28T19-10-41Z-002
+  2026-06-28T18:55:22.044Z  NEEDS_VALIDATION  WARN  validation: NOT_RUN  quality: 5  run: 2026-06-28T18-55-22Z
+
+Trends:
+  Readiness improved: 3
+  Readiness regressed: 1
+  Validation: PASS 8, FAIL 1, MIXED 1, NOT_RUN 2
+  Average quality findings: 4.2
+```
+
+Validation is `MIXED` when a run contains both passing and failing results, `FAIL` when it contains failures only, `PASS` when it contains passes and no failures, and `NOT_RUN` when no pass or failure evidence exists. Policy uses the stored `policy.status`. Quality uses the stored `quality_review.finding_count`. Readiness movement uses the same deterministic ordering as run comparison.
+
 ## Local output
 
 Each `handoff` invocation writes files inside the inspected repository:
@@ -247,7 +308,7 @@ Run comparison uses recorded evidence only. It cannot infer intent, semantic cor
 
 ## v0 scope
 
-Relaypoint v0.6 supports Git inspection, optional local project profiles, deterministic local policy checks, collision-safe run IDs, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, comparison with the previous recorded run, Markdown reports, a schema-versioned JSON run record, and a read-only latest-run status summary. The run-record schema remains `0.5.0` because Project Status reads existing evidence without changing the record structure.
+Relaypoint v0.7 supports Git inspection, optional local project profiles, deterministic local policy checks, collision-safe run IDs, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, comparison with the previous recorded run, Markdown reports, a schema-versioned JSON run record, a read-only latest-run status summary, and a read-only history timeline. The run-record schema remains `0.5.0` because Project Status and Project History read existing evidence without changing the record structure.
 
 It has no external AI API, network requirement, API key, hosted service, database, authentication, dashboard, spend tracking, deep code review, autonomous agent, marketplace, or knowledge-base system. Python validation is suggested when detectable but is not executed in v0.
 
@@ -258,6 +319,7 @@ It has no external AI API, network requirement, API key, hosted service, databas
 - Rule Packs use a fixed trigger list rather than expressions, custom scripts, imported packs, or semantic analysis.
 - Quality findings use intentionally shallow line- and pattern-based heuristics; they may produce false positives or miss semantic concerns.
 - Run comparison depends on available, readable prior run records and uses exact command, path, risk-flag, and finding keys.
+- History trends depend on available stored run records; missing fields are not reconstructed, and timeline limits do not filter aggregate counts.
 - Relaypoint records command outcomes but cannot prove semantic correctness.
 - It does not know the session's original intent.
 - Output previews are capped; large logs are truncated.

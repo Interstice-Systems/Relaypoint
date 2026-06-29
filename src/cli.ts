@@ -4,9 +4,10 @@ import { createHandoff } from "./index.js";
 import { parseArgs, USAGE } from "./cliArgs.js";
 import { initializeRelaypoint } from "./initialize.js";
 import { NO_RUN_MESSAGE, readLatestStatus } from "./status.js";
+import { DEFAULT_HISTORY_LIMIT, NO_HISTORY_MESSAGE, readHistory, renderHistory, renderHistoryWarnings } from "./history.js";
 
 async function main(): Promise<void> {
-  const { command, run, compare, help } = parseArgs(process.argv.slice(2));
+  const { command, run, compare, limit, help } = parseArgs(process.argv.slice(2));
   if (help) { console.log(USAGE); return; }
   if (command === "init") {
     const results = await initializeRelaypoint(process.cwd());
@@ -17,6 +18,13 @@ async function main(): Promise<void> {
     const status = await readLatestStatus();
     if (status) process.stdout.write(status);
     else console.log(NO_RUN_MESSAGE);
+    return;
+  }
+  if (command === "history") {
+    const result = await readHistory(process.cwd(), limit ?? DEFAULT_HISTORY_LIMIT);
+    for (const warning of renderHistoryWarnings(result.warnings)) console.error(`relaypoint: warning: ${warning}`);
+    if (result.summary) process.stdout.write(renderHistory(result.summary));
+    else console.log(NO_HISTORY_MESSAGE);
     return;
   }
   if (command !== "handoff") throw new Error(`Unknown command: ${command}`);

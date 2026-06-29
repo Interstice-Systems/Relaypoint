@@ -12,7 +12,9 @@ describe("CLI arguments", () => {
     expect(USAGE).toContain("POLICY_REPORT.md");
     expect(USAGE).toContain("relaypoint init");
     expect(USAGE).toContain("relaypoint status");
+    expect(USAGE).toContain("relaypoint history [--limit <count>]");
     expect(USAGE).toContain("Shows a read-only summary of the latest Relaypoint run.");
+    expect(USAGE).toContain("Shows a read-only timeline of prior Relaypoint runs.");
     expect(USAGE).toContain("project_profile.json");
     expect(USAGE).toContain("rules.json");
   });
@@ -25,6 +27,17 @@ describe("CLI arguments", () => {
   it("parses status without generation options", () => {
     expect(parseArgs(["status"])).toEqual({ command: "status", run: [], compare: true, help: false });
     expect(() => parseArgs(["status", "--run", "test"])).toThrow("Unknown argument: --run");
+  });
+
+  it("parses history with an optional positive limit", () => {
+    expect(parseArgs(["history"])).toEqual({ command: "history", run: [], compare: true, limit: undefined, help: false });
+    expect(parseArgs(["history", "--limit", "20"])).toEqual({ command: "history", run: [], compare: true, limit: 20, help: false });
+    expect(parseArgs(["history", "--help"])).toMatchObject({ command: "history", help: true });
+    for (const value of ["0", "nope", "-5", "1.5"]) {
+      expect(() => parseArgs(["history", "--limit", value])).toThrow("--limit requires a positive integer");
+    }
+    expect(() => parseArgs(["history", "--limit"])).toThrow("--limit requires a positive integer");
+    expect(() => parseArgs(["history", "--run", "test"])).toThrow("Unknown argument: --run");
   });
 
   it("parses repeated validation requests", () => {

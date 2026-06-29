@@ -18,6 +18,10 @@ function movement(previous: number | undefined, current: number | undefined): Re
   return "unchanged";
 }
 
+export function readinessMovement(previous: Readiness, current: Readiness): ReadinessMovement {
+  return movement(readinessScore[previous], readinessScore[current]);
+}
+
 function severityMovement(previous: QualitySeverity | null, current: QualitySeverity | null): ReadinessMovement {
   const before = previous ? severityScore[previous] : 0;
   const after = current ? severityScore[current] : 0;
@@ -74,7 +78,7 @@ export function compareRuns(previous: ComparableRunRecord, current: ComparableRu
     summary: {
       readiness_previous: previous.readiness,
       readiness_current: current.readiness,
-      readiness_change: movement(readinessScore[previous.readiness], readinessScore[current.readiness]),
+      readiness_change: readinessMovement(previous.readiness, current.readiness),
       risk_flags_added: difference(currentRisks, previousRisks), risk_flags_removed: difference(previousRisks, currentRisks), risk_flags_persistent: intersection(currentRisks, previousRisks),
       changed_files_added: difference(currentFiles, previousFiles), changed_files_removed: difference(previousFiles, currentFiles), changed_files_persistent: intersection(currentFiles, previousFiles),
       validation_improved: validation.improved, validation_regressed: validation.regressed,
