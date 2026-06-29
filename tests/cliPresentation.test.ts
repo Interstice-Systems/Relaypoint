@@ -16,13 +16,13 @@ describe("CLI presentation", () => {
   it.each([[], ["--help"], ["-h"]])("shows concise package-versioned help", (...args) => {
     const parsed = parseArgs(args);
     expect(parsed.help).toBe(true);
-    expect(renderUsage(PACKAGE_VERSION)).toContain("Relaypoint 0.99.0");
+    expect(renderUsage(PACKAGE_VERSION)).toContain("Relaypoint 1.0.0");
     expect(renderUsage(PACKAGE_VERSION)).toContain("Usage:");
   });
 
   it.each([["--version"], ["version"]])("shows the package version", (...args) => {
     expect(parseArgs(args).version).toBe(true);
-    expect(renderVersion(PACKAGE_VERSION)).toBe("relaypoint 0.99.0");
+    expect(renderVersion(PACKAGE_VERSION)).toBe("relaypoint 1.0.0");
   });
 
   it("renders a concise unknown-command error without a stack trace", () => {

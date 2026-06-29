@@ -1,6 +1,6 @@
 {
   "name": "relaypoint",
-  "version": "0.99.0",
+  "version": "1.0.0",
   "description": "Deterministic evidence infrastructure for AI-assisted software engineering.",
   "type": "module",
   "bin": {
@@ -34,7 +34,15 @@
     "code-review",
     "agent"
   ],
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Interstice-Systems/Relaypoint.git"
+  },
+  "homepage": "https://github.com/Interstice-Systems/Relaypoint",
+  "bugs": {
+    "url": "https://github.com/Interstice-Systems/Relaypoint/issues"
+  },
+  "author": "Interstice Systems",
   "license": "MIT",
   "engines": {
     "node": ">=20"

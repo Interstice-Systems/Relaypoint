@@ -1,6 +1,6 @@
 # Run Record Schema
 
-`RUN_RECORD.json` is Relaypoint's machine-readable evidence artifact. New v0.99
+`RUN_RECORD.json` is Relaypoint's machine-readable evidence artifact. New v1.0
 runs use schema version `0.5.0`; the product version and schema version are
 independent. This document describes the exact shape currently emitted by
 `createRunRecord`.

@@ -1,17 +1,20 @@
 # Changelog
 
-Relaypoint follows [Semantic Versioning](https://semver.org/). Until 1.0, minor
-releases may change command output or stored schemas; those changes must be
-documented here.
+Relaypoint follows [Semantic Versioning](https://semver.org/). Run-record
+schemas are versioned independently from the package.
 
-## 0.99.0 - Unreleased
+## 1.0.0 - 2026-06-29
 
-- Added a release-candidate self-test plan and explicit v1.0 release criteria.
-- Added automated Git failure-state, schema compatibility, validation outcome,
-  and release-document coverage.
-- Rehearsed package installation, installed CLI behavior, and the full local
-  dogfood workflow.
-- Corrected release documentation discovered by hostile new-user review.
+- Established the deterministic evidence engine and schema-versioned run
+  records as the stable v1 contract.
+- Added deterministic quality review, run comparison, project profiles, and
+  the local policy engine.
+- Added read-only status and history views for current and historical evidence.
+- Prepared distribution metadata, package contents, and installed CLI behavior.
+- Completed architecture, schema, contributor, example, dogfood, and release
+  documentation.
+- Completed release engineering coverage for failure states, compatibility,
+  validation outcomes, packaging, installation, and local dogfooding.
 
 ## 0.9.0
 

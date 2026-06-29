@@ -9,12 +9,21 @@ describe("package distribution metadata", () => {
     const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
     expect(packageJson).toMatchObject({
       name: "relaypoint",
-      version: "0.99.0",
+      version: "1.0.0",
       description: "Deterministic evidence infrastructure for AI-assisted software engineering.",
       type: "module",
       bin: { relaypoint: "./dist/cli.js" },
       engines: { node: ">=20" },
       license: "MIT",
+      repository: {
+        type: "git",
+        url: "https://github.com/Interstice-Systems/Relaypoint.git",
+      },
+      homepage: "https://github.com/Interstice-Systems/Relaypoint",
+      bugs: {
+        url: "https://github.com/Interstice-Systems/Relaypoint/issues",
+      },
+      author: "Interstice Systems",
     });
     expect(packageJson.files).toEqual([
       "dist",
@@ -54,9 +63,9 @@ describe("package distribution metadata", () => {
     expect(packageJson.files).not.toContain(".relaypoint");
 
     const criteria = await readFile(path.join(root, "V1_RELEASE_CRITERIA.md"), "utf8");
-    const plan = await readFile(path.join(root, "docs", "RELEASE_CANDIDATE_TEST_PLAN.md"), "utf8");
+    const plan = await readFile(path.join(root, "docs", "V1_RELEASE_VALIDATION.md"), "utf8");
     expect(criteria).toContain("# V1.0 Release Criteria");
-    expect(criteria).toContain("- Create the v1.0.0 tag.");
-    expect(plan).toContain("# Release Candidate Test Plan");
+    expect(criteria).toContain("- [ ] Create the v1.0.0 tag.");
+    expect(plan).toContain("# V1.0 Release Validation");
   });
 });

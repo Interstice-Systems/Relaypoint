@@ -15,9 +15,8 @@ can understand the state of the work without relying on conversational memory.
 
 Relaypoint is deliberately deterministic and evidence-focused. The same stored inputs produce the same review signals.
 
-Relaypoint v0.99 is a release-candidate verification milestone. It exercises
-and packages the existing tool without adding a new analysis engine or hosted
-capability.
+Relaypoint is stable at version 1.0.0. Version 1.0 establishes the documented
+CLI, evidence, compatibility, and distribution baseline.
 
 ## What Relaypoint Does
 
@@ -259,8 +258,8 @@ boundaries.
   review, and commit expectations.
 - [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) — local verification
   through publication and announcement.
-- [`docs/RELEASE_CANDIDATE_TEST_PLAN.md`](docs/RELEASE_CANDIDATE_TEST_PLAN.md) —
-  automated v0.99 evidence and remaining manual checks.
+- [`docs/V1_RELEASE_VALIDATION.md`](docs/V1_RELEASE_VALIDATION.md) — automated
+  v1.0 evidence and remaining manual checks.
 - [`V1_RELEASE_CRITERIA.md`](V1_RELEASE_CRITERIA.md) — the concise v1.0
   readiness gate.
 - [`docs/DOGFOOD_NOTES.md`](docs/DOGFOOD_NOTES.md) — the living observation
@@ -289,14 +288,16 @@ Lightweight configuration examples are available in [`examples/README.md`](examp
 
 ## Roadmap
 
-v0.99 is the release-candidate self-test pass for the completed v1.0 free/core
-feature set. It concentrates on failure behavior, compatibility, documentation,
-packaging, installation, and dogfood verification.
+### Released in v1.0
 
-Before v1.0, work should concentrate on contract stability and operational
-confidence. The v1.0 bar is a stable documented CLI and run-record contract, not
-a larger feature set. Remaining release gates are tracked in
-[`V1_RELEASE_CRITERIA.md`](V1_RELEASE_CRITERIA.md).
+Version 1.0 provides the stable documented CLI and run-record contract,
+including deterministic evidence collection, quality review, run comparison,
+project profiles, local policy checks, status, and history.
+
+### v1.1
+
+No v1.1 features are committed. Follow-up planning begins with dogfood and
+community feedback while preserving the v1.0 compatibility baseline.
 
 AI integrations, GitHub integrations, cloud features, web UI, dashboards,
 export bundles, premium functionality, and new analysis engines are not part of

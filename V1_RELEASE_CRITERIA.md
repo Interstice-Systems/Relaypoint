@@ -2,34 +2,34 @@
 
 ## Product
 
-- [ ] Core CLI commands are stable.
-- [ ] No planned v1 features remain unimplemented.
-- [ ] No known release-blocking defects exist.
+- [x] Core CLI commands are stable.
+- [x] No planned v1 features remain unimplemented.
+- [x] No known release-blocking defects exist.
 
 ## Quality
 
-- [ ] All tests pass.
-- [ ] Build passes.
-- [ ] Packaging passes.
-- [ ] Installed package smoke test passes.
-- [ ] Dogfood workflow passes.
+- [x] All tests pass.
+- [x] Build passes.
+- [x] Packaging passes.
+- [x] Installed package smoke test passes.
+- [x] Dogfood workflow passes.
 
 ## Documentation
 
-- [ ] README reviewed from a new-user perspective.
-- [ ] CHANGELOG updated.
-- [ ] CONTRIBUTING reviewed.
-- [ ] Architecture documentation matches implementation.
-- [ ] Schema documentation matches emitted data.
-- [ ] Release checklist reviewed.
+- [x] README reviewed from a new-user perspective.
+- [x] CHANGELOG updated.
+- [x] CONTRIBUTING reviewed.
+- [x] Architecture documentation matches implementation.
+- [x] Schema documentation matches emitted data.
+- [x] Release checklist reviewed.
 
 ## Stability
 
-- [ ] Historical run records remain readable.
-- [ ] Older schemas degrade gracefully.
-- [ ] Error messages are concise.
-- [ ] Help output is accurate.
-- [ ] Version output is accurate.
+- [x] Historical run records remain readable.
+- [x] Older schemas degrade gracefully.
+- [x] Error messages are concise.
+- [x] Help output is accurate.
+- [x] Version output is accurate.
 
 ## Philosophy
 
@@ -47,9 +47,9 @@ No feature should violate these principles for the sake of v1.0.
 
 Once all items are complete:
 
-- Create the v1.0.0 tag.
-- Publish the GitHub release.
-- Publish to npm if desired.
-- Publish the launch article.
-- Announce on X.
-- Begin collecting dogfood and community feedback for v1.1.
+- [ ] Create the v1.0.0 tag.
+- [ ] Publish the GitHub release.
+- [ ] Publish to npm if desired.
+- [ ] Publish the launch article.
+- [ ] Announce on X.
+- [ ] Begin collecting dogfood and community feedback for v1.1.

@@ -1,7 +1,7 @@
-# Release Candidate Test Plan
+# V1.0 Release Validation
 
-This document records the v0.99 release-candidate self-test scope. It separates
-automated evidence from checks that still require a human release decision.
+This document records the v1.0 release-validation scope. It separates automated
+evidence from checks that still require a human release decision.
 
 ## Automated and scripted coverage
 
@@ -54,4 +54,4 @@ The rehearsal ran on Linux with Node.js 24.16.0, npm 11.17.0, and Git 2.53.0.
   publication review.
 
 No tag, GitHub release, npm publication, or announcement is part of this
-self-test pass.
+validation pass.
