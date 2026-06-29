@@ -3,6 +3,7 @@ import path from "node:path";
 import { createHandoff } from "./index.js";
 import { parseArgs, USAGE } from "./cliArgs.js";
 import { initializeRelaypoint } from "./initialize.js";
+import { NO_RUN_MESSAGE, readLatestStatus } from "./status.js";
 
 async function main(): Promise<void> {
   const { command, run, compare, help } = parseArgs(process.argv.slice(2));
@@ -10,6 +11,12 @@ async function main(): Promise<void> {
   if (command === "init") {
     const results = await initializeRelaypoint(process.cwd());
     for (const result of results) console.log(`${result.created ? "Created" : "Skipped existing"} ${result.label}: ${result.path}`);
+    return;
+  }
+  if (command === "status") {
+    const status = await readLatestStatus();
+    if (status) process.stdout.write(status);
+    else console.log(NO_RUN_MESSAGE);
     return;
   }
   if (command !== "handoff") throw new Error(`Unknown command: ${command}`);

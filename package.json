@@ -1,6 +1,6 @@
 {
   "name": "relaypoint",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Clean handoffs for AI-built code.",
   "type": "module",
   "bin": {

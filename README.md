@@ -28,6 +28,7 @@ After building, run the compiled CLI from the repository you want to inspect:
 cd /path/to/target-repo
 node /home/colt/code/Relaypoint/dist/cli.js handoff
 node /home/colt/code/Relaypoint/dist/cli.js handoff --run test --run build
+node /home/colt/code/Relaypoint/dist/cli.js status
 ```
 
 From Relaypoint's own repository, these shorter forms work:
@@ -35,6 +36,7 @@ From Relaypoint's own repository, these shorter forms work:
 ```bash
 npm run dev -- handoff
 npm run dev -- init
+npm run dev -- status
 npm run relaypoint -- handoff --run test
 npm run dev -- --help
 ```
@@ -44,6 +46,7 @@ After `npm link` (or package installation), the eventual command is:
 ```bash
 relaypoint handoff
 relaypoint init
+relaypoint status
 relaypoint handoff --run test --run build
 relaypoint handoff --no-compare
 ```
@@ -152,9 +155,59 @@ Validation records command outcomes. Policy evaluates local review requirements.
 
 Malformed whole rule files produce warnings and use built-in defaults. Invalid, duplicate, unsupported, and disabled entries are warned and skipped without aborting the handoff. The v0.5 format accepts only the fixed triggers above; it has no expressions, custom executable checks, imports, or remote rule packs.
 
+## Project Status
+
+`relaypoint status` answers: “Where does this project stand right now?” It reads `.relaypoint/latest/RUN_RECORD.json` and prints a concise plain-text summary of the latest captured project, run, readiness, validation, policy, quality, comparison, and report evidence.
+
+Status is read-only. It does not create a run or write files, and it does not re-run Git inspection, validation, quality review, policy checks, or comparison. If no latest run exists, it reports:
+
+```text
+No Relaypoint run found. Run `relaypoint handoff` first.
+```
+
+The normal workflow is:
+
+```bash
+npm run dev -- handoff --run test --run build
+npm run dev -- status
+```
+
+`handoff` captures evidence. `status` summarizes the latest captured evidence.
+
+Example:
+
+```text
+Relaypoint Status
+
+Project
+  Name: Relaypoint
+  Type: node
+  Profile: loaded
+
+Latest Run
+  Run ID: 2026-06-28T18-41-02Z-001
+  Branch: main
+  Working Tree: dirty
+
+Readiness
+  Overall: READY_FOR_REVIEW
+  Policy: WARN
+  Validation: PASS
+  Quality: 3 findings
+  Comparison: available
+
+Validation
+  Passed: test, build
+  Failed: none
+  Skipped: none
+  Unknown: none
+```
+
+The full command output also shows policy and quality severity counts, comparison movement when available, and report filenames. Missing optional fields in older run records are shown as `unknown` or omitted where appropriate.
+
 ## Local output
 
-Each invocation writes files inside the inspected repository:
+Each `handoff` invocation writes files inside the inspected repository:
 
 ```text
 .relaypoint/
@@ -194,7 +247,7 @@ Run comparison uses recorded evidence only. It cannot infer intent, semantic cor
 
 ## v0 scope
 
-Relaypoint v0.5 supports Git inspection, optional local project profiles, deterministic local policy checks, collision-safe run IDs, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, comparison with the previous recorded run, Markdown reports, and a schema-versioned JSON run record. Policy additions change the run-record schema version to `0.5.0`.
+Relaypoint v0.6 supports Git inspection, optional local project profiles, deterministic local policy checks, collision-safe run IDs, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, comparison with the previous recorded run, Markdown reports, a schema-versioned JSON run record, and a read-only latest-run status summary. The run-record schema remains `0.5.0` because Project Status reads existing evidence without changing the record structure.
 
 It has no external AI API, network requirement, API key, hosted service, database, authentication, dashboard, spend tracking, deep code review, autonomous agent, marketplace, or knowledge-base system. Python validation is suggested when detectable but is not executed in v0.
 

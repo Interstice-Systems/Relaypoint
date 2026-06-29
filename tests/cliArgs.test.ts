@@ -11,6 +11,8 @@ describe("CLI arguments", () => {
     expect(USAGE).toContain("RUN_COMPARISON.md");
     expect(USAGE).toContain("POLICY_REPORT.md");
     expect(USAGE).toContain("relaypoint init");
+    expect(USAGE).toContain("relaypoint status");
+    expect(USAGE).toContain("Shows a read-only summary of the latest Relaypoint run.");
     expect(USAGE).toContain("project_profile.json");
     expect(USAGE).toContain("rules.json");
   });
@@ -18,6 +20,11 @@ describe("CLI arguments", () => {
   it("parses init without overwrite options", () => {
     expect(parseArgs(["init"])).toEqual({ command: "init", run: [], compare: true, help: false });
     expect(() => parseArgs(["init", "--force"])).toThrow("Unknown argument: --force");
+  });
+
+  it("parses status without generation options", () => {
+    expect(parseArgs(["status"])).toEqual({ command: "status", run: [], compare: true, help: false });
+    expect(() => parseArgs(["status", "--run", "test"])).toThrow("Unknown argument: --run");
   });
 
   it("parses repeated validation requests", () => {
