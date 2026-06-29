@@ -25,3 +25,19 @@ export async function initializeRelaypoint(cwd: string): Promise<InitializationR
     { label: "rules file", path: rulesExists ? rulesTarget : await initializeRulePack(root), created: !rulesExists },
   ];
 }
+
+export function renderInitializationResults(cwd: string, results: InitializationResult[]): string {
+  const displayPath = (target: string): string => path.relative(cwd, target).split(path.sep).join("/");
+  const created = results.filter((result) => result.created).map((result) => `  ${displayPath(result.path)}`);
+  const skipped = results.filter((result) => !result.created).map((result) => `  ${displayPath(result.path)} already exists`);
+  return [
+    "Relaypoint init",
+    "",
+    "Created:",
+    ...(created.length ? created : ["  none"]),
+    "",
+    "Skipped:",
+    ...(skipped.length ? skipped : ["  none"]),
+    ...(created.length ? ["", "Next:", "  relaypoint handoff --run test --run build", "  relaypoint status"] : []),
+  ].join("\n");
+}

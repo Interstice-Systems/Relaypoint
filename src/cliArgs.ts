@@ -4,38 +4,75 @@ export interface CliOptions {
   compare: boolean;
   limit?: number;
   help: boolean;
+  version: boolean;
 }
 
-export const USAGE = `Relaypoint — clean handoffs for AI-built code
+export class CliUsageError extends Error {}
+
+export function renderVersion(version: string): string {
+  return `relaypoint ${version}`;
+}
+
+export function renderUsageError(message: string): string {
+  return `${message}\n\nRun \`relaypoint --help\` for available commands.`;
+}
+
+export function renderUsage(version: string): string {
+  return `Relaypoint ${version}
+
+Deterministic evidence infrastructure for AI-assisted software engineering.
 
 Usage:
-  relaypoint init
-  relaypoint handoff [--run <package-script>]... [--no-compare]
-  relaypoint status
-  relaypoint history [--limit <count>]
-  relaypoint --help
+  relaypoint <command> [options]
+
+Commands:
+  handoff      Capture evidence and generate local reports
+  init         Create local Relaypoint profile/rules files
+  status       Show a read-only summary of the latest run
+  history      Show a read-only timeline of prior runs
+  version      Show Relaypoint version
 
 Options:
-  --run <name>  Run a package.json script and record its result. May be repeated.
-  --no-compare  Do not compare this run with the previous Relaypoint run.
-  --limit <count>  Limit history timeline rows (default: 10).
-  -h, --help    Show this help.
+  -h, --help       Show help
+  --version        Show version
 
-init creates starter project_profile.json and rules.json files when missing, without overwriting either.
-handoff uses .relaypoint/project_profile.json and .relaypoint/rules.json when present.
-status
-  Shows a read-only summary of the latest Relaypoint run.
-history
-  Shows a read-only timeline of prior Relaypoint runs.
-Discovered validation commands are never run unless explicitly requested.
-Handoff output is written locally under .relaypoint/, including RUN_COMPARISON.md and POLICY_REPORT.md.`;
+Command options:
+  handoff [--run <package-script>]... [--no-compare]
+  history [--limit <count>]`;
+}
+
+function rejectExtraArguments(rest: string[]): void {
+  if (rest.length) throw new CliUsageError(`Unknown option: ${rest[0]}`);
+}
 
 export function parseArgs(args: string[]): CliOptions {
   const [command, ...rest] = args;
-  if (!command || command === "--help" || command === "-h") return { command, run: [], compare: true, help: true };
+  if (!command || command === "--help" || command === "-h") {
+    rejectExtraArguments(rest);
+    return { command, run: [], compare: true, help: true, version: false };
+  }
+  if (command === "--version") {
+    rejectExtraArguments(rest);
+    return { command, run: [], compare: true, help: false, version: true };
+  }
+  if (command === "version") {
+    if (rest[0] === "--help" || rest[0] === "-h") {
+      rejectExtraArguments(rest.slice(1));
+      return { command, run: [], compare: true, help: true, version: false };
+    }
+    rejectExtraArguments(rest);
+    return { command, run: [], compare: true, help: false, version: true };
+  }
+  if (!["handoff", "init", "status", "history"].includes(command)) {
+    throw new CliUsageError(`${command.startsWith("-") ? "Unknown option" : "Unknown command"}: ${command}`);
+  }
   if (command === "init" || command === "status") {
-    if (rest.length) throw new Error(`Unknown argument: ${rest[0]}`);
-    return { command, run: [], compare: true, help: false };
+    if (rest[0] === "--help" || rest[0] === "-h") {
+      rejectExtraArguments(rest.slice(1));
+      return { command, run: [], compare: true, help: true, version: false };
+    }
+    rejectExtraArguments(rest);
+    return { command, run: [], compare: true, help: false, version: false };
   }
   if (command === "history") {
     let limit: number | undefined;
@@ -45,15 +82,15 @@ export function parseArgs(args: string[]): CliOptions {
       if (argument === "--help" || argument === "-h") { help = true; continue; }
       if (argument === "--limit") {
         const value = rest[index + 1];
-        if (!value || !/^[1-9]\d*$/.test(value)) throw new Error("--limit requires a positive integer.");
+        if (!value || !/^[1-9]\d*$/.test(value)) throw new CliUsageError("--limit requires a positive integer.");
         limit = Number(value);
-        if (!Number.isSafeInteger(limit)) throw new Error("--limit requires a positive integer.");
+        if (!Number.isSafeInteger(limit)) throw new CliUsageError("--limit requires a positive integer.");
         index += 1;
         continue;
       }
-      throw new Error(`Unknown argument: ${argument}`);
+      throw new CliUsageError(`Unknown option: ${argument}`);
     }
-    return { command, run: [], compare: true, limit, help };
+    return { command, run: [], compare: true, limit, help, version: false };
   }
   const run: string[] = [];
   let compare = true;
@@ -64,12 +101,12 @@ export function parseArgs(args: string[]): CliOptions {
     if (argument === "--no-compare") { compare = false; continue; }
     if (argument === "--run") {
       const script = rest[index + 1];
-      if (!script || script.startsWith("-")) throw new Error("--run requires a package script name.");
+      if (!script || script.startsWith("-")) throw new CliUsageError("--run requires a package script name.");
       run.push(script);
       index += 1;
       continue;
     }
-    throw new Error(`Unknown argument: ${argument}`);
+    throw new CliUsageError(`Unknown option: ${argument}`);
   }
-  return { command, run, compare, help };
+  return { command, run, compare, help, version: false };
 }

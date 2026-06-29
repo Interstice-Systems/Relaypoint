@@ -11,10 +11,10 @@ export const mockGit: GitState = {
 export const mockProject = { type: "node" as const, package_manager: "npm" as const, name: "example", scripts: { test: "vitest" }, validation_suggestions: [] };
 
 describe("run record", () => {
-  it("uses the v0.7 package and v0.5 run record schema versions", async () => {
+  it("uses the v0.8 package and v0.5 run record schema versions", async () => {
     const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
     const record = createRunRecord({ runId: "fixed", createdAt: "2026-06-21T00:00:00.000Z", git: mockGit, project: mockProject, requested: [], results: [] });
-    expect(packageJson.version).toBe("0.7.0");
+    expect(packageJson.version).toBe("0.8.0");
     expect(record.schema_version).toBe("0.5.0");
   });
 

@@ -1,74 +1,116 @@
 # Relaypoint
 
-Clean handoffs for AI-built code.
+Deterministic evidence infrastructure for AI-assisted software engineering.
 
-Relaypoint is a local-first CLI that turns an AI-assisted coding session into a reviewable evidence bundle. Run it from a Git repository root to capture repository state, changed files, recent commits, deterministic risk flags, validation evidence, quality-review signals, and continuation context.
+Relaypoint is a local-first CLI that records what changed, what was validated, what failed, and what may deserve review after an AI-assisted coding session. Its output gives a developer or future agent durable evidence without requiring an AI API, external service, account, or network connection.
 
-> Relaypoint does not decide what to build next. It preserves evidence so a human developer or future agent can continue with better context.
+## Why Relaypoint Exists
 
-Relaypoint collects evidence. It does not replace human review, claim that code is correct, infer the original task, or direct autonomous work.
+AI-assisted changes often outlive the chat that produced them. Relaypoint turns local repository and process data into reviewable evidence so the next person can understand the state of the work without relying on conversational memory.
 
-## Why it exists
+Relaypoint is deliberately deterministic and evidence-focused. The same stored inputs produce the same review signals.
 
-AI coding sessions can leave code without a durable account of what changed, what was validated, and what remains uncertain. Relaypoint creates that account using only local repository and process data. It makes the handoff auditable and reproducible without an LLM.
+## What Relaypoint Does
 
-## Install and build
+- Inspects Git and detects basic project metadata.
+- Classifies changed files and records deterministic risk flags.
+- Runs only explicitly requested Node package scripts and records their outcomes.
+- Generates handoff, QA, quality, policy, comparison, and continuation reports.
+- Stores schema-versioned JSON run records in collision-safe history directories.
+- Uses optional project profiles and local rule packs.
+- Summarizes the latest run and prior runs without changing project state.
 
-Relaypoint requires Node.js 20 or newer and npm.
+## What Relaypoint Does Not Do
+
+Relaypoint does not call LLMs, use external APIs, require a hosted service, or send repository data over the network. It does not decide what should be built next, replace human review, infer the original task, rewrite code, or claim that code is correct.
+
+## Installation
+
+Relaypoint requires Node.js 20 or newer and npm. Before npm publication, clone the repository and use `npm link` for local global testing:
 
 ```bash
 npm install
-npm test
 npm run build
+npm link
+relaypoint --help
 ```
 
-After building, run the compiled CLI from the repository you want to inspect:
+`npm link` exposes the built `relaypoint` command through the package `bin` entry. Run `npm run build` again after source changes. Relaypoint is not currently documented as an npm registry install because it has not been published.
+
+`dist/` is generated and Git-ignored. Run `npm run build` before `npm pack` or any local install test so the compiled CLI is included.
+
+For development without linking:
 
 ```bash
-cd /path/to/target-repo
-node /home/colt/code/Relaypoint/dist/cli.js handoff
-node /home/colt/code/Relaypoint/dist/cli.js handoff --run test --run build
-node /home/colt/code/Relaypoint/dist/cli.js status
-node /home/colt/code/Relaypoint/dist/cli.js history
-```
-
-From Relaypoint's own repository, these shorter forms work:
-
-```bash
-npm run dev -- handoff
-npm run dev -- init
+npm run dev -- --help
+npm run dev -- handoff --run test --run build
 npm run dev -- status
 npm run dev -- history
-npm run relaypoint -- handoff --run test
-npm run dev -- --help
 ```
 
-After `npm link` (or package installation), the eventual command is:
+## Quick Start
+
+From the Git repository you want to inspect:
 
 ```bash
-relaypoint handoff
 relaypoint init
+relaypoint handoff --run test --run build
 relaypoint status
 relaypoint history
-relaypoint handoff --run test --run build
-relaypoint handoff --no-compare
 ```
 
-`--run` accepts a package script name, may be repeated, and never accepts an arbitrary shell command. Discovered scripts are not run automatically. A missing requested script is recorded as skipped. The compiled `dist/cli.js` command requires `npm run build` first.
+- `init` creates optional local profile and rules files without overwriting them.
+- `handoff` captures repository and validation evidence and writes local reports.
+- `status` summarizes the latest captured evidence.
+- `history` summarizes prior evidence over time.
 
-By default, `handoff` compares the new evidence bundle with the most recent valid Relaypoint run. Use `--no-compare` to disable comparison for one run.
+Omit `init` if the project does not need custom context. Discovered validation commands are never executed automatically.
+
+## Commands
+
+```text
+relaypoint handoff [--run <package-script>]... [--no-compare]
+relaypoint init
+relaypoint status
+relaypoint history [--limit <count>]
+relaypoint version
+relaypoint --help
+relaypoint --version
+```
+
+`--run` may be repeated. It accepts a `package.json` script name, not an arbitrary shell command. A missing requested script is recorded as skipped. By default, `handoff` compares the new run with the most recent valid run; `--no-compare` disables that comparison. History shows 10 timeline rows by default, and `--limit` changes the displayed row count without changing aggregate totals.
+
+## Generated Reports
+
+Each handoff writes a durable run and refreshes `.relaypoint/latest/`:
+
+```text
+.relaypoint/
+  runs/<collision-safe-run-id>/
+    HANDOFF.md
+    QA_REPORT.md
+    AGENT_HANDOFF.md
+    QUALITY_REVIEW.md
+    RUN_COMPARISON.md
+    POLICY_REPORT.md
+    RUN_RECORD.json
+  latest/
+    <copies of the latest completed run>
+```
+
+- `HANDOFF.md` summarizes repository, project, change, validation, and readiness evidence.
+- `QA_REPORT.md` focuses on validation outcomes.
+- `AGENT_HANDOFF.md` preserves continuation context and explicit do-not-assume warnings.
+- `QUALITY_REVIEW.md` records deterministic changed-file heuristics.
+- `RUN_COMPARISON.md` compares recorded evidence with the previous valid run.
+- `POLICY_REPORT.md` records triggered local standards and supporting evidence.
+- `RUN_RECORD.json` stores the machine-readable evidence.
+
+Quality findings and risk flags are review targets, not proof of defects. False positives and false negatives are expected.
 
 ## Project Profile
 
-Project Profile is optional local configuration that answers: “What does this project care about?” It customizes evidence and review context without using AI or replacing human judgment. Create a starter profile with:
-
-```bash
-relaypoint init
-# or, in this repository
-npm run dev -- init
-```
-
-This creates `.relaypoint/project_profile.json` and `.relaypoint/rules.json` when they are missing. Existing files are reported and left unchanged. A missing profile leaves normal handoff behavior intact. A malformed or version-mismatched profile produces report and run-record warnings while Relaypoint continues with safe defaults.
+`.relaypoint/project_profile.json` is optional owner-defined context:
 
 ```json
 {
@@ -78,7 +120,7 @@ This creates `.relaypoint/project_profile.json` and `.relaypoint/rules.json` whe
   "critical_paths": ["src/", "package.json"],
   "ignored_paths": ["scratch/"],
   "preferred_validation": ["test", "build"],
-  "review_focus": ["preserve deterministic output", "avoid overconfident language"],
+  "review_focus": ["preserve deterministic output"],
   "quality": {
     "max_file_lines": 400,
     "max_function_lines": 80,
@@ -89,19 +131,13 @@ This creates `.relaypoint/project_profile.json` and `.relaypoint/rules.json` whe
 }
 ```
 
-Paths are repository-relative and use normalized, deterministic path-prefix matching; full glob syntax is not supported. `critical_paths` highlights matching changed files. `ignored_paths` excludes matching files from changed-file evidence, risk analysis, and quality review. Absolute paths, parent traversal, empty/root paths, and `.git` ignore paths are rejected with warnings. `.relaypoint/**` is always excluded and cannot be re-enabled by a profile.
+Paths use repository-relative prefix matching, not globs. Invalid paths are ignored with warnings. `.relaypoint/**` is always excluded from changed-file evidence. Preferred validation scripts are recorded but only run when explicitly passed with `--run`.
 
-For Node projects, `preferred_validation` names package scripts. Existing scripts are recorded as preferred commands, but are never run unless explicitly requested with `--run`. `review_focus`, `description`, and `notes` provide owner-defined context, especially in `AGENT_HANDOFF.md`.
+A missing profile preserves normal behavior. A malformed or version-mismatched profile produces warnings and safe defaults.
 
-Positive `max_file_lines`, `max_function_lines`, and `max_line_length` values override the corresponding deterministic quality thresholds. `null` retains the built-in threshold. When `allow_todos` is true, TODO/FIXME/HACK markers are permitted by the profile; other quality heuristics remain active. Applied preferences are disclosed in `QUALITY_REVIEW.md` and `RUN_RECORD.json`.
+## Rule Packs / Policy Checks
 
-Project Profile customizes evidence and review context. It does not create an autonomous agent plan, decide the next task, interpret the semantic meaning of changes, or establish that code is correct.
-
-## Rule Packs and Policy Checks
-
-Rule Packs answer: “Which local review standards were triggered by this run?” Relaypoint evaluates a fixed set of deterministic checks against evidence it already captured. Rules do not run commands, rewrite code, invoke AI, create plans, or prove that code is correct.
-
-`relaypoint init` creates this starter `.relaypoint/rules.json` when the file is missing:
+`.relaypoint/rules.json` defines deterministic local review standards using a fixed trigger set:
 
 ```json
 {
@@ -113,218 +149,82 @@ Rule Packs answer: “Which local review standards were triggered by this run?�
       "severity": "warning",
       "description": "Source changes should usually include test changes or validation evidence.",
       "when": "source_changed_without_tests"
-    },
-    {
-      "id": "validation_failures_block_review",
-      "enabled": true,
-      "severity": "blocking",
-      "description": "Validation failures should be resolved or explicitly reviewed before completion.",
-      "when": "validation_failed"
-    },
-    {
-      "id": "critical_paths_require_validation",
-      "enabled": true,
-      "severity": "warning",
-      "description": "Critical path changes should be validated before review.",
-      "when": "critical_path_changed_without_validation"
-    },
-    {
-      "id": "lockfile_requires_review",
-      "enabled": true,
-      "severity": "info",
-      "description": "Lockfile changes should be reviewed for dependency drift.",
-      "when": "lockfile_changed"
     }
   ]
 }
 ```
 
-The same four rules are built in and used when no rules file exists. Supported `when` values are:
+Supported triggers cover validation failures or absence, source changes without tests, critical paths without validation, lockfile/config changes, quality signals, large changesets, and preferred validation not run. Severities are `blocking`, `warning`, and `info`.
 
-- `source_changed_without_tests`
-- `validation_failed`
-- `validation_not_run`
-- `critical_path_changed_without_validation`
-- `lockfile_changed`
-- `config_changed`
-- `high_quality_findings`
-- `todo_markers_found`
-- `large_changeset`
-- `preferred_validation_not_run`
+Rules evaluate evidence already captured by Relaypoint. They cannot execute commands, import remote packs, run arbitrary expressions, or prove correctness. Malformed rule files fall back to built-in defaults with warnings.
 
-Severities are `blocking`, `warning`, and `info`. Policy status is `BLOCKED` when a blocking rule triggers, `WARN` when only warning or informational rules trigger, `PASS` when evaluated rules do not trigger, and `UNKNOWN` when no valid enabled rules can be evaluated. A blocking finding moves readiness to `NEEDS_VALIDATION` unless validation failures already make readiness `HAS_FAILURES`.
+## Status And History
 
-Validation records command outcomes. Policy evaluates local review requirements. These are deliberately separate: passing policy does not imply validation passed, and neither policy nor validation proves correctness.
+`relaypoint status` reads `.relaypoint/latest/RUN_RECORD.json` and prints the latest readiness, validation, policy, quality, comparison, and report evidence.
 
-Malformed whole rule files produce warnings and use built-in defaults. Invalid, duplicate, unsupported, and disabled entries are warned and skipped without aborting the handoff. The v0.5 format accepts only the fixed triggers above; it has no expressions, custom executable checks, imports, or remote rule packs.
+`relaypoint history` reads `.relaypoint/runs/*/RUN_RECORD.json` and prints a timeline plus aggregate readiness and validation trends. Malformed records are skipped with bounded warnings; missing older fields remain unknown rather than being inferred.
 
-## Project Status
+Both commands are read-only. They do not create runs, rerun Git inspection, execute validation, or modify evidence.
 
-`relaypoint status` answers: “Where does this project stand right now?” It reads `.relaypoint/latest/RUN_RECORD.json` and prints a concise plain-text summary of the latest captured project, run, readiness, validation, policy, quality, comparison, and report evidence.
-
-Status is read-only. It does not create a run or write files, and it does not re-run Git inspection, validation, quality review, policy checks, or comparison. If no latest run exists, it reports:
+## Suggested Workflow
 
 ```text
-No Relaypoint run found. Run `relaypoint handoff` first.
+AI coding session / developer changes
+        |
+        v
+relaypoint handoff
+        |
+        v
+Evidence collection
+        |
+        +--> QA report
+        +--> Quality review
+        +--> Policy report
+        +--> Run comparison
+        +--> Agent handoff
+        +--> Run record
+        |
+        v
+relaypoint status / relaypoint history
 ```
 
-The normal workflow is:
+A practical review loop is:
 
 ```bash
-npm run dev -- handoff --run test --run build
-npm run dev -- status
+relaypoint init
+relaypoint handoff --run test --run build
+relaypoint status
+relaypoint history --limit 5
 ```
 
-`handoff` captures evidence. `status` summarizes the latest captured evidence.
+Review the reports and underlying changes before accepting the work. Relaypoint preserves evidence; human judgment remains the decision boundary.
 
-Example:
+## Architecture
 
-```text
-Relaypoint Status
+Relaypoint is a TypeScript ESM CLI. It inspects local Git and project files, optionally executes named npm scripts, builds typed evidence, renders Markdown and JSON, and writes atomically reserved run directories. No runtime dependencies or network services are required.
 
-Project
-  Name: Relaypoint
-  Type: node
-  Profile: loaded
+Git state is captured before output is written. Run IDs use Windows-safe timestamps with deterministic numeric suffixes for collisions. `latest/` contains copies, not symlinks, and has best-effort last-writer behavior during concurrent runs; `runs/` remains the durable evidence source.
 
-Latest Run
-  Run ID: 2026-06-28T18-41-02Z-001
-  Branch: main
-  Working Tree: dirty
+## Local Files
 
-Readiness
-  Overall: READY_FOR_REVIEW
-  Policy: WARN
-  Validation: PASS
-  Quality: 3 findings
-  Comparison: available
+Relaypoint writes generated evidence only under `.relaypoint/`. This repository ignores that directory. Relaypoint does not modify another project's `.gitignore`; projects should add `.relaypoint/` when evidence should remain local, or intentionally commit selected artifacts as part of their own workflow.
 
-Validation
-  Passed: test, build
-  Failed: none
-  Skipped: none
-  Unknown: none
-```
+Lightweight configuration examples are available in [`examples/README.md`](examples/README.md).
 
-The full command output also shows policy and quality severity counts, comparison movement when available, and report filenames. Missing optional fields in older run records are shown as `unknown` or omitted where appropriate.
+## Current Limitations
 
-## Project History
-
-`relaypoint history` answers: “How has this project changed over time?” It reads prior evidence from `.relaypoint/runs/*/RUN_RECORD.json` and prints a concise plain-text timeline with aggregate readiness, policy, validation, quality, and readiness-movement trends.
-
-History is read-only. It does not create a new run or modify files, and it does not re-run Git inspection, validation, quality review, policy checks, or comparison. Malformed or unreadable run records are skipped with concise warnings; at most 10 individual warnings are printed, followed by the remaining skipped count. Older partial JSON objects remain usable; missing or unrecognized evidence is reported as `unknown` or `unavailable` rather than inferred.
-
-The timeline shows the latest 10 valid runs by default. Aggregate counts cover all valid run records. Use `--limit` to change only the number of displayed timeline rows:
-
-```bash
-npm run dev -- history
-npm run dev -- history --limit 20
-```
-
-If no valid prior runs exist, history reports:
-
-```text
-No Relaypoint runs found. Run `relaypoint handoff` first.
-```
-
-Recommended workflow:
-
-```bash
-npm run dev -- handoff --run test --run build
-npm run dev -- status
-npm run dev -- history
-```
-
-`handoff` captures evidence. `status` summarizes the latest run. `history` summarizes prior runs over time.
-
-Example:
-
-```text
-Relaypoint History
-
-Runs: 12
-Project: Relaypoint
-
-Latest:
-  Run ID: 2026-06-28T19-10-41Z-002
-  Created: 2026-06-28T19:10:41.123Z
-  Readiness: READY_FOR_REVIEW
-  Policy: WARN
-  Validation: PASS
-  Quality Findings: 3
-
-Timeline (latest 10):
-  2026-06-28T19:10:41.123Z  READY_FOR_REVIEW  WARN  validation: PASS  quality: 3  run: 2026-06-28T19-10-41Z-002
-  2026-06-28T18:55:22.044Z  NEEDS_VALIDATION  WARN  validation: NOT_RUN  quality: 5  run: 2026-06-28T18-55-22Z
-
-Trends:
-  Readiness improved: 3
-  Readiness regressed: 1
-  Validation: PASS 8, FAIL 1, MIXED 1, NOT_RUN 2
-  Average quality findings: 4.2
-```
-
-Validation is `MIXED` when a run contains both passing and failing results, `FAIL` when it contains failures only, `PASS` when it contains passes and no failures, and `NOT_RUN` when no pass or failure evidence exists. Policy uses the stored `policy.status`. Quality uses the stored `quality_review.finding_count`. Readiness movement uses the same deterministic ordering as run comparison.
-
-## Local output
-
-Each `handoff` invocation writes files inside the inspected repository:
-
-```text
-.relaypoint/
-  runs/2026-06-21T18-30-00-123Z/
-    HANDOFF.md
-    QA_REPORT.md
-    AGENT_HANDOFF.md
-    QUALITY_REVIEW.md
-    RUN_COMPARISON.md
-    POLICY_REPORT.md
-    RUN_RECORD.json
-  latest/
-    HANDOFF.md
-    QA_REPORT.md
-    AGENT_HANDOFF.md
-    QUALITY_REVIEW.md
-    RUN_COMPARISON.md
-    POLICY_REPORT.md
-    RUN_RECORD.json
-```
-
-Run IDs are collision-safe, Windows-safe timestamp identifiers. Relaypoint atomically reserves each run directory; when the timestamp ID already exists, it appends a deterministic numeric suffix such as `-001`, `-002`, or `-003`. These IDs remain readable and sort in timestamp and numeric suffix order, and an existing run directory is never reused. In `RUN_RECORD.json`, `run_id` is the final unique folder identifier while `created_at` remains the actual ISO creation timestamp.
-
-`latest/` contains copies from the most recently published completed run, not symlinks. Concurrent runs preserve their own unique run directories; `latest/` has best-effort last-writer behavior, while `runs/` remains the durable evidence source. Git state is captured before output is written, and `.relaypoint/**` is excluded from changed-file analysis. Relaypoint does not alter a target repository's `.gitignore`; adding `.relaypoint/` is recommended when generated evidence should remain local. Teams may instead choose to commit selected evidence artifacts as part of their own review workflow.
-
-`AGENT_HANDOFF.md` preserves repository state, grouped changed files, validation evidence, risk flags, review focus, and explicit do-not-assume warnings. It is continuation context, not a prompt that invents or assigns another task.
-
-`QUALITY_REVIEW.md` applies deterministic, line-based heuristics to changed files only. It highlights possible simplification targets and readability or maintainability signals such as large files, long functions, deep nesting, long lines, review markers, broad helper files, dense documentation sections, repeated headings, and repeated prose. Generated Relaypoint output, dependencies, build output, and coverage output are excluded.
-
-Quality Review uses no AI, LLM calls, external APIs, or network access. It never rewrites files. Findings are review targets, not proof of defects or correctness; false positives and false negatives are expected. The goal is to reduce avoidable slop and surface possible readability, simplicity, and elegance improvements while leaving judgment with the reviewer.
-
-`RUN_COMPARISON.md` records what changed between the current run and the most recent valid previous run. It reports readiness movement, added/removed/persistent risk flags, newly/no-longer/still changed files, validation changes by command, and deterministic quality-finding count changes. If no prior valid run exists, the report records that comparison evidence is unavailable. Relaypoint selects the prior run before writing the current bundle, so a run cannot compare against itself.
-
-Run comparison uses recorded evidence only. It cannot infer intent, semantic correctness, whether a changed file is complete, or what work should happen next. Validation comparisons reflect stored command statuses, and quality findings match only on the deterministic key `file + category + message`; they are not semantic matches.
-
-`POLICY_REPORT.md` records loaded, evaluated, and triggered rule counts; policy status; findings grouped by severity; supporting evidence; review focus; and rule warnings. `RUN_RECORD.json` stores the same policy evidence in a `policy` object and references `POLICY_REPORT.md` from `outputs.policy_report`.
-
-## v0 scope
-
-Relaypoint v0.7 supports Git inspection, optional local project profiles, deterministic local policy checks, collision-safe run IDs, basic Node/Python project detection, Node package-script discovery, explicitly requested Node validation, file classification, deterministic risk flags, deterministic changed-file quality review, comparison with the previous recorded run, Markdown reports, a schema-versioned JSON run record, a read-only latest-run status summary, and a read-only history timeline. The run-record schema remains `0.5.0` because Project Status and Project History read existing evidence without changing the record structure.
-
-It has no external AI API, network requirement, API key, hosted service, database, authentication, dashboard, spend tracking, deep code review, autonomous agent, marketplace, or knowledge-base system. Python validation is suggested when detectable but is not executed in v0.
-
-## Limitations
-
-- Classification and risk flags are path-based heuristics.
-- Project Profile path matching uses repository-relative prefixes rather than globs, and invalid fields fall back independently to defaults.
-- Rule Packs use a fixed trigger list rather than expressions, custom scripts, imported packs, or semantic analysis.
-- Quality findings use intentionally shallow line- and pattern-based heuristics; they may produce false positives or miss semantic concerns.
-- Run comparison depends on available, readable prior run records and uses exact command, path, risk-flag, and finding keys.
-- History trends depend on available stored run records; missing fields are not reconstructed, and timeline limits do not filter aggregate counts.
-- Relaypoint records command outcomes but cannot prove semantic correctness.
-- It does not know the session's original intent.
-- Output previews are capped; large logs are truncated.
-- Git submodules, worktrees, unusual status encodings, and non-Node validation may need deeper support later.
+- Classification, risk flags, and quality review use shallow deterministic heuristics.
+- Profile path matching uses prefixes rather than full glob syntax.
+- Rule packs use fixed triggers rather than custom expressions or scripts.
+- Validation execution currently supports explicitly requested Node package scripts.
+- Comparisons and history depend on readable stored run records.
+- Relaypoint does not understand semantic intent or establish correctness.
+- Git submodules, worktrees, and unusual status encodings may need deeper support.
 
 ## Roadmap
 
-Near-term work can improve fixture coverage, Git edge-case handling, additional deterministic project detectors, a versioned schema migration policy, and carefully scoped custom rule expressions or shareable rule packs. These additions should preserve the local-first, evidence-only boundary.
+Future work may improve fixtures, Git edge-case handling, deterministic project detectors, schema migration policy, and carefully scoped shareable rules. Export bundles, hosted services, and autonomous decision-making are outside the v0.8 distribution milestone.
+
+## License
+
+Relaypoint is available under the [MIT License](LICENSE).

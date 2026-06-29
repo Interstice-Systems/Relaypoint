@@ -1,18 +1,37 @@
 {
   "name": "relaypoint",
-  "version": "0.7.0",
-  "description": "Clean handoffs for AI-built code.",
+  "version": "0.8.0",
+  "description": "Deterministic evidence infrastructure for AI-assisted software engineering.",
   "type": "module",
   "bin": {
-    "relaypoint": "dist/cli.js"
+    "relaypoint": "./dist/cli.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "examples"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "node --import tsx src/cli.ts",
     "relaypoint": "node --import tsx src/cli.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "pack:check": "npm pack --dry-run"
   },
+  "keywords": [
+    "ai",
+    "cli",
+    "developer-tools",
+    "software-engineering",
+    "qa",
+    "handoff",
+    "evidence",
+    "code-review",
+    "agent"
+  ],
+  "author": "",
+  "license": "MIT",
   "engines": {
     "node": ">=20"
   },
