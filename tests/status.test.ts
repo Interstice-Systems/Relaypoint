@@ -124,6 +124,8 @@ describe("project status", () => {
 
   it("summarizes comparison movement and report outputs", () => {
     const output = renderStatus(fullRecord);
+    expect(output).toContain("Latest bundle:");
+    expect(output).toContain(".relaypoint/latest/");
     expect(output).toContain("Readiness Change: unchanged");
     expect(output).toContain("Risks Added: 0");
     expect(output).toContain("Risks Removed: 1");
