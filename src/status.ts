@@ -235,9 +235,13 @@ export function renderStatus(value: unknown): string {
     ...renderQuality(object(record.quality_review)),
     ...renderComparison(object(record.comparison)),
     "",
-    "Reports",
+    "Latest bundle:",
+    "  .relaypoint/latest/",
+    "",
+    "Reports:",
     ...visibleReports,
   ];
+
   return `${lines.join("\n")}\n`;
 }
 
